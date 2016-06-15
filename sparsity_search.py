@@ -10,7 +10,7 @@ def sparsity_search(model_c, sparsity, X, log_lambd_range=None,
 
     Parameters
     ----------
-    model : ICA constructor
+    model_c : ICA constructor
         Model class constructor.
     sparsity : float
         Target sparsity.

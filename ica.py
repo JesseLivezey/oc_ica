@@ -2,14 +2,162 @@ from __future__ import division
 from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 from collections import OrderedDict
-import theano
-import theano.tensor as T
 from numpy.linalg import *
 from scipy.optimize import minimize
+import theano
+import theano.tensor as T
+from theano.compat.python2x import OrderedDict
 
 __authors__ = "Jesse Livezey, Alex Bujan"
 
     
+def cost(degeneracy, Wn, W_T, lambd=None):
+    """
+    Create costs and intermediate values from input variables.
+    """
+    S_T = T.dot(Wn, X_T)
+    X_hat_T = T.dot(Wn.T,S_T)
+    gram = T.dot(Wn,Wn.T)
+    gram_diff = gram-T.eye(n_sources)
+    if degeneracy == 'RICA':
+        error = .5 * T.sum((X_hat_T-X_T)**2, axis=0).mean()
+    elif degeneracy == 'L2':
+        error = (1./2) * T.sum(gram_diff**2)
+    elif degeneracy == 'L4':
+        error = (1./4) * T.sum((gram_diff**2)**2)
+    elif degeneracy == 'Lp':
+        assert isinstance(p, int)
+        assert (p % 2) == 0
+        error = gram_diff
+        for ii in range(p//2):
+            error = error**2
+        error = (1./p) * T.sum(error)
+    elif degeneracy == 'COULOMB':
+        epsilon = 0.1
+        error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
+    elif degeneracy == 'COULOMB_A':
+        assert a is not None
+        epsilon = 0.1
+        error = .5 * T.sum((1. / (1. + epsilon - gram**2)**(1 / a)) - (gram**2 / a))
+    elif degeneracy == 'RANDOM':
+        epsilon = 0.1
+        error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
+    elif degeneracy == 'RANDOM_A':
+        epsilon = 0.1
+        error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
+    else:
+        raise ValueError
+
+    penalty = T.log(T.cosh(S_T)).sum(axis=0).mean()
+    if lambd is None:
+    loss = error
+    else:
+        loss =  error + lambd * penalty
+
+    X_T_normed = X_T/T.sqrt((X_T**2).sum(axis=0, keepdims=True))
+    X_hat_T_normed = X_hat_T/T.sqrt((X_hat_T**2).sum(axis=0, keepdims=True))
+    mse = ((X_T_normed-X_hat_T_normed)**2).sum(axis=0).mean()
+
+    return loss, error, penalty, mse, S_T, X_hat_T
+
+def setup_transforms(n_sources, n_mixtures):
+    """
+    Create transform_f and reconstruct_f functions.
+    """
+    X_T = theano.shared(np.zeros((1, 1), dtype='float32'))
+    Wv = T.dvector('W')
+    W  = T.reshape(Wv,(n_sources, n_mixtures)).astype('float32')
+    epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+    W_norm = T.sqrt(epssumsq)
+    Wn = W / W_norm
+    
+    loss, error, penalty, mse, S_T, X_hat_T = cost(degeneracy, Wn, X_T)
+
+    transform_f = theano.function(inputs=[W], outputs=[S_T])
+    reconstruct_f = theano.function(inputs=[W], outputs=[X_hat_T])
+
+    return transform_f, reconstruct_f
+
+def setup_lbfgsb(n_sources, n_mixtures, lambd):
+    """
+    # L-BFGS Optimization
+    """
+    X_T = theano.shared(np.zeros((1, 1), dtype='float32'))
+    Wv = T.dvector('W')
+    W  = T.reshape(Wv,(n_sources, n_mixtures)).astype('float32')
+    epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+    W_norm = T.sqrt(epssumsq)
+    Wn = W / W_norm
+    
+    """
+    Setup
+    """
+    loss, error, penalty, mse, S_T, X_hat_T = cost(degeneracy, Wn, X_T, lambd)
+    loss_grad = T.grad(loss, Wv)
+
+    # For monitoring
+    X_T_normed = X_T/T.sqrt((X_T**2).sum(axis=0, keepdims=True))
+    X_hat_T_normed = X_hat_T/T.sqrt((X_hat_T**2).sum(axis=0, keepdims=True))
+    mse = ((X_T_normed-X_hat_T_normed)**2).sum(axis=0).mean()
+
+    """
+    Training
+    """
+    self.f_df = theano.function(inputs=[Wv], outputs=[loss.astype('float64'),loss_grad.astype('float64')])
+    self.callback_f = theano.function(inputs=[Wv],
+                                 outputs=[loss, error, penalty, mse])
+
+    return X_T, f_df, callback_f
+
+def fit_lbfgsb(data, X_shared, components_, f_df, fallback_f):
+    """
+    Fit components_ from data.
+    """
+    def callback(w):
+        res = callback_f(w)
+        print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(*res[:4]))
+    X_shared.set_value(data.astype('float32'))
+    w = components_.ravel()
+    w = w.reshape((self.n_sources, self.n_mixtures))
+    res = minimize(self.f_df, w, jac=True, method='L-BFGS-B', callback=callback)
+    w_f = res.x
+    l, g = self.f_df(w_f)
+    print('ICA with L-BFGS-B done!')
+    print('Final loss value: {}'.format(l))
+
+    return w_f.reshape((self.n_sources,self.n_mixtures))
+
+def setup_sgd(n_sources, n_mixtures, lambd, learning_rule):
+    """
+    SGD optimization
+    """
+    X_T = T.matrix('X')
+    W  = theano.shared(np.random.randn(n_sources, n_mixtures)).astype('float32'))
+    epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+    W_norm = T.sqrt(epssumsq)
+    Wn = W / W_norm
+    
+    """
+    Setup
+    """
+    loss, error, penalty, mse, S_T, X_hat_T = cost(degeneracy, Wn, X_T, lambd)
+    loss_grad = T.grad(loss, W)
+    updates = learning_rule([W], [loss_grad])
+
+    # For monitoring
+    X_T_normed = X_T/T.sqrt((X_T**2).sum(axis=0, keepdims=True))
+    X_hat_T_normed = X_hat_T/T.sqrt((X_hat_T**2).sum(axis=0, keepdims=True))
+    mse = ((X_T_normed-X_hat_T_normed)**2).sum(axis=0).mean()
+
+    """
+    Training
+    """
+    self.train_f = theano.function(inputs=[X_T],
+                                   outputs=[loss, error, penalty, mse],
+                                   updates=updates)
+
+    return W, train_f
+
 class ICA(BaseEstimator, TransformerMixin):
     """
     ICA class.
@@ -33,7 +181,7 @@ class ICA(BaseEstimator, TransformerMixin):
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-2,
                  w_init=None, degeneracy='RICA', p=None, rng=None,
-                 a=None):
+                 a=None, optimizer='L-BFGS-B'):
 
         if rng is None:
             seed = np.random.randint(100000)
@@ -57,69 +205,6 @@ class ICA(BaseEstimator, TransformerMixin):
         self.n_sources = n_sources
         self.components_ = w_0
 
-        """
-        # L-BFGS Optimization
-        """
-        X_T = theano.shared(np.zeros((1, 1), dtype='float32'))
-        self.X = X_T
-        Wv = T.dvector('W')
-        W  = T.reshape(Wv,(n_sources,n_mixtures)).astype('float32')
-        epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
-        W_norm = T.sqrt(epssumsq)
-        Wn = W / W_norm
-        
-        """
-        Setup
-        """
-        S_T = T.dot(Wn, X_T)
-        X_hat_T = T.dot(Wn.T,S_T)
-        gram = T.dot(Wn,Wn.T)
-        gram_diff = gram-T.eye(n_sources)
-        if degeneracy == 'RICA':
-            error = .5 * T.sum((X_hat_T-X_T)**2, axis=0).mean()
-        elif degeneracy == 'L2':
-            error = (1./2) * T.sum(gram_diff**2)
-        elif degeneracy == 'L4':
-            error = (1./4) * T.sum((gram_diff**2)**2)
-        elif degeneracy == 'Lp':
-            assert isinstance(p, int)
-            assert (p % 2) == 0
-            error = gram_diff
-            for ii in range(p//2):
-                error = error**2
-            #error = (1./2**p) * T.sum(error)
-            error = (1./p) * T.sum(error)
-        elif degeneracy == 'COULOMB':
-            epsilon = 0.1
-            error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
-        elif degeneracy == 'COULOMB_A':
-            assert a is not None
-            epsilon = 0.1
-            error = .5 * T.sum((1. / (1. + epsilon - gram**2)**(1 / a)) - (gram**2 / a))
-        elif degeneracy == 'RANDOM':
-            epsilon = 0.1
-            error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
-        elif degeneracy == 'RANDOM_A':
-            epsilon = 0.1
-            error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
-        else:
-            raise ValueError
-        penalty = T.log(T.cosh(S_T)).sum(axis=0).mean()
-        loss =  error + lambd * penalty
-        loss_grad = T.grad(loss, Wv)
-        # For monitoring
-        X_T_normed = X_T/T.sqrt((X_T**2).sum(axis=0, keepdims=True))
-        X_hat_T_normed = X_hat_T/T.sqrt((X_hat_T**2).sum(axis=0, keepdims=True))
-        mse = ((X_T_normed-X_hat_T_normed)**2).sum(axis=0).mean()
-
-        """
-        Training
-        """
-        self.f_df = theano.function(inputs=[Wv], outputs=[loss.astype('float64'),loss_grad.astype('float64')])
-        self.callback_f = theano.function(inputs=[Wv],
-                                     outputs=[loss, error, penalty, mse])
-        self.transform_f = theano.function(inputs=[W], outputs=[S_T])
-        self.reconstruct_f = theano.function(inputs=[W], outputs=[X_hat_T])
 
     def fit(self, X, y=None):
         """
@@ -130,18 +215,6 @@ class ICA(BaseEstimator, TransformerMixin):
         X : ndarray
             Data array (mixtures by samples)
         """
-        def callback(w):
-            res = self.callback_f(w)
-            print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(*res[:4]))
-        self.X.set_value(X.astype('float32'))
-        w = self.components_.ravel()
-        w = w.reshape((self.n_sources, self.n_mixtures))
-        res = minimize(self.f_df, w, jac=True, method='L-BFGS-B', callback=callback)
-        w_f = res.x
-        l, g = self.f_df(w_f)
-        print('ICA with L-BFGS-B done!')
-        print('Final loss value: {}'.format(l))
-        w = w_f.reshape((self.n_sources,self.n_mixtures))
         self.components_ = w/norm(w, axis=-1, keepdims=True)
         return self
 
