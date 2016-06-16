@@ -120,7 +120,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.jet,
                 ax.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
                 ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=-10)
                 if density:
-                    ax.set_ylabel('Density',fontsize=16,labelpad=0)
+                    ax.set_ylabel('Density',fontsize=16,labelpad=2)
                 else:
                     ax.set_ylabel('Counts',fontsize=16)
                 ax.set_xlim(45,90)
