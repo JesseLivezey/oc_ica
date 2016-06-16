@@ -1,8 +1,13 @@
 from __future__ import division
 import numpy as np
 from numpy.linalg import inv,norm
-import ica as ocICA
+#import ica as ocICA
+#reload(ocICA)
+
+#TODO: remove temporary import after new ica module is fixed
+import ica_classes as ocICA
 reload(ocICA)
+
 
 def decorr_complete(X):
     return inv(np.sqrt(X.dot(X.T))).dot(X)
@@ -20,7 +25,7 @@ def get_Winit(n_sources, n_mixtures, init='random'):
     elif init=='pathological':
         w = np.tile(np.eye(n_mixtures), (n_sources//n_mixtures, 1))+\
             np.random.randn(n_sources, n_mixtures)/100
-    w = w/norm(w_0, axis=-1, keepdims=True)
+    w = w/norm(w, axis=-1, keepdims=True)
     return w
 
 def quasi_ortho_decorr(w):
