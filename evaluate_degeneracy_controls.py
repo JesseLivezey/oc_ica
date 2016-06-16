@@ -1,16 +1,10 @@
 import numpy as np
 from numpy.linalg import norm
-import ica_classes as ica_c
-reload(ica_c)
+import ica as ocICA
+reload(ocICA)
 
-overcompleteness = 2
-n_mixtures = 64
-n_sources = n_mixtures*overcompleteness
-initial_conditions = ['random','collimated','pathological']
-degeneracy_controls = ['L2','COULOMB','RANDOM','L4','COULOMB_A']
-
-def decorr(X):
-    return (3./2.)*X - (1./2.)*X.dot(X.T).dot(X)
+def decorr(w):
+    return (3./2.)*w - (1./2.)*w.dot(w.T).dot(w)
 
 def get_Winit(n_sources, n_mixtures, init=random):
     if init=='random':
@@ -24,22 +18,30 @@ def get_Winit(n_sources, n_mixtures, init=random):
     w = w/norm(w_0, axis=-1, keepdims=True)
     return w
 
-def get_W(initial_conditions, degeneracy_controls, n_sources, n_mixtures):
+def quasi_ortho_decorr(w):
+    wd = decorr(w.copy())
+    wd = wd/norm(wd, axis=-1, keepdims=True)
+    return wd
+
+def get_W(w_init, degeneracy):
     """Obtain W that minimizes the ICA loss funtion without the penalty"""
+    n_sources, n_mixtures = w_init.shape
     X = np.ones((n_mixtures, 2), dtype='float32')
+    ica = ocICA.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
+                    degeneracy=degeneracy, lambd=0., w_init=w_init.copy())
+    return = ica.fit(X).components_
+
+def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources, n_mixtures):
     W_0 = np.zeros((len(initial_conditions),n_sources,n_mixtures))
-    W = np.zeros((len(initial_conditions),len(degeneracy_controls),n_sources,n_mixtures))
+    W = np.zeros((len(initial_conditions),len(degeneracy_controls),
+                  n_sources,n_mixtures))
     for i,init in enumerate(initial_conditions):
         W_0[i] = get_Winit(n_sources, n_mixtures, init=init)
         for j,dg in enumerate(degeneracy_controls):
             if dg!='QUASI-ORTHO':
-                ica = ica_c.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
-                                degeneracy=dg, lambd=0., w_init=W_0[i].copy())
-                W[i,j] = ica.fit(X).components_
+                W[i,j] = get_W(W_0[i], dg)
             else:
-                wd = decorr(W_0[i].copy())
-                wd = wd/norm(wd, axis=-1, keepdims=True)
-                W[i,j] = wd
+                W[i,j] = quasi_ortho_decorr(W_0[i])
     return W, W_0
 
 def compute_angles(w):
