@@ -15,7 +15,7 @@ def plot_costs(mode=0,savePath=None):
     formatter=mpl.ticker.FormatStrFormatter('%.1f')
     fig = plt.figure('costs',figsize=(3,3))
     fig.clf()
-    ax = plt.axes([.15,.15,.8,.8])
+    ax = plt.axes([.16,.15,.8,.81])
     costs = ['L2', 'COULOMB', 'RANDOM', 'L4']
     costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
     col = np.linspace(0,1,len(costs))
@@ -267,5 +267,11 @@ def plot_figure2a(W=None,W_0=None):
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_1column(W[0][np.newaxis,...],W_0,costs,density=True)
 
+
+def plot_figure2c():
+    plot_costs()
+
+def plot_figure2d():
+    plot_costs(mode=1)
 
 
