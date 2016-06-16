@@ -196,7 +196,7 @@ def setup_sgd(n_sources, n_mixtures, w_0, lambd, degeneracy, learning_rule):
     return W, train_f
 
 def fit_sgd(W, train_f, data, components_,
-            tol=1e-5, batch_size=256, n_epochs=50,
+            tol=1e-5, batch_size=512, n_epochs=50,
             seed=20160615):
     """
     Fit components_ from data.
@@ -306,7 +306,8 @@ class ICA(BaseEstimator, TransformerMixin):
         """
         self.components_ = self.components_/norm(self.components_, axis=-1, keepdims=True)
         args = self.fit_info + (X, self.components_)
-        self.fit_f(*args, **self.fit_kwargs)
+        w_f = self.fit_f(*args, **self.fit_kwargs)
+        self.components_ = w_f/norm(w_f, axis=-1, keepdims=True)
         return self
 
     def transform(self, X, y=None):

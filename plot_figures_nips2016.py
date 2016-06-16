@@ -276,12 +276,14 @@ def plot_filters(filters,n_pixels=8,n_filters=16,\
         fig.clf()
         ax = plt.axes()
     im = tile_raster_images(filters,(n_pixels,n_pixels),(n_filters,n_filters),
-                       (2,2),scale_rows_to_unit_interval=False,
+                       (2,2), scale_rows_to_unit_interval=False,
                        output_pixel_vals=False)
     ax.imshow(im,aspect='auto',interpolation='nearest',cmap='gray')
     ax.set_axis_off()
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
+    else:
+        plt.show()
 
 def plot_figure3a(angles,labels,density=True,\
                    savePath=None,ax=None):

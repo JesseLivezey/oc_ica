@@ -1,11 +1,7 @@
 from __future__ import division
 import numpy as np
 from numpy.linalg import inv,norm
-#import ica as ocICA
-#reload(ocICA)
-
-#TODO: remove temporary import after new ica module is fixed
-import ica_classes as ocICA
+import ica as ocICA
 reload(ocICA)
 
 
