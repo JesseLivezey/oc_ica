@@ -136,8 +136,8 @@ def setup_lbfgsb(n_sources, n_mixtures, degeneracy, lambd):
     L-BFGS-B Optimization
     """
     X_T = theano.shared(np.zeros((1, 1), dtype='float32'))
-    Wv = T.dvector('W')
-    W  = T.reshape(Wv,(n_sources, n_mixtures)).astype('float32')
+    Wv = T.vector('W')
+    W  = T.reshape(Wv,(n_sources, n_mixtures))
     epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
     W_norm = T.sqrt(epssumsq)
     Wn = W / W_norm
@@ -149,7 +149,7 @@ def setup_lbfgsb(n_sources, n_mixtures, degeneracy, lambd):
     X_hat_T_normed = X_hat_T/T.sqrt((X_hat_T**2).sum(axis=0, keepdims=True))
     mse = ((X_T_normed-X_hat_T_normed)**2).sum(axis=0).mean()
 
-    f_df = theano.function(inputs=[Wv], outputs=[loss.astype('float64'),loss_grad.astype('float64')])
+    f_df = theano.function(inputs=[Wv], outputs=[loss,loss_grad])
     callback_f = theano.function(inputs=[Wv],
                                  outputs=[loss, error, penalty, mse])
     return X_T, f_df, callback_f
@@ -159,13 +159,15 @@ def fit_lbfgsb(X_shared, f_df, callback_f, data, components_):
     Fit components_ from data.
     """
     def callback(w):
-        res = callback_f(w)
+        res = callback_f(w.astype('float32'))
         print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(*res[:4]))
     X_shared.set_value(data.astype('float32'))
     w = components_.ravel()
-    res = minimize(f_df, w, jac=True, method='L-BFGS-B', callback=callback)
+    float_f_df = lambda w: tuple([r.astype('float64') for r in
+                            f_df(w.astype('float32'))])
+    res = minimize(float_f_df, w, jac=True, method='L-BFGS-B', callback=callback)
     w_f = res.x
-    l, g = f_df(w_f)
+    l, g = float_f_df(w_f)
     print('ICA with L-BFGS-B done!')
     print('Final loss value: {}'.format(l))
     return w_f.reshape(components_.shape)
