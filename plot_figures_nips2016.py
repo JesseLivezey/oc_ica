@@ -1,5 +1,5 @@
 from __future__ import division
-import pdb
+import pdb,h5py
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -16,7 +16,6 @@ def plot_costs(mode=0,savePath=None):
     fig = plt.figure('costs',figsize=(3,3))
     fig.clf()
     ax = plt.axes([.16,.15,.8,.81])
-    costs = ['L2', 'COULOMB', 'RANDOM', 'L4']
     costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
     col = np.linspace(0,1,len(costs))
     if mode==0:
@@ -125,7 +124,6 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.jet,
                     ax.set_ylabel('Counts',fontsize=16)
                 ax.set_xlim(45,90)
                 ax.set_xticks([45,90])
-                #ax.set_xticks([0,45,90])
   
             if density:
                 ax.set_yticks([1e-4,1e-2,1e0])
@@ -179,7 +177,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.jet,
         ax.spines['right'].set_visible(False)
         ax2.spines['left'].set_visible(False)
         ax2.yaxis.tick_right()
-        ax2.tick_params(labelright='off')  # don't put tick labels at the top
+        ax2.tick_params(labelright='off')
         ax.yaxis.tick_left()
         
         ax.set_yscale('log')
@@ -194,7 +192,6 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.jet,
             ax.set_ylim(1e0,1e4) 
 
         ax.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
-        #ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=-10)
         if density:
             ax.set_ylabel('Density',fontsize=16,labelpad=-2)
         else:
@@ -210,9 +207,6 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.jet,
         ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
         #ax2.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
-        #ax2.set_xlabel(r'$\theta$',fontsize=16,labelpad=-10)
-        #ax2.set_xlim(79,90)
-        #ax2.set_xticks([80,90])
         ax2.set_xlim(80,90)
         ax2.set_xticks([81,90])
      
@@ -221,7 +215,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.jet,
         else:
             ax2.set_yticks([1e0,1e2,1e4])
 
-        ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())        
+        ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
     d = .015  # how big to make the diagonal lines in axes coordinates
     # arguments to pass plot, just so we don't keep repeating them
@@ -274,4 +268,78 @@ def plot_figure2c():
 def plot_figure2d():
     plot_costs(mode=1)
 
+
+def plot_filters(filters,n_pixels=8,n_filters=16,\
+                 savePath=None,ax=None):
+    if ax is None:
+        fig = plt.figure('filters')
+        fig.clf()
+        ax = plt.axes()
+    im = tile_raster_images(filters,(n_pixels,n_pixels),(n_filters,n_filters),
+                       (2,2),scale_rows_to_unit_interval=False,
+                       output_pixel_vals=False)
+    ax.imshow(im,aspect='auto',interpolation='nearest',cmap='gray')
+    ax.set_axis_off()
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
+
+def plot_figure3a(angles,labels,density=True,\
+                   savePath=None,ax=None):
+    """
+    Plots angle histograms
+    
+    Parameters:
+    -----------
+    
+    angles: array
+            dimensions: n_sparsity_values x n_angles
+    sparsity:  array
+            sparsity values
+    """
+    if ax is None:
+        fig = plt.figure('angle_hist',figsize=(4,4))
+        fig.clf()
+        ax = plt.axes([.15,.1,.8,.8])
+    col = np.linspace(0,1,len(labels))
+    for i in xrange(len(labels)):
+        h,b = np.histogram(angles[i],np.arange(0,91))
+        if density:
+             h= h/np.sum(h)
+        ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i])
+    ax.set_yscale('log')
+    if not density:
+        ax.set_ylabel('Counts',fontsize=16)
+        ax.set_yticks([1e0,1e2,1e4])
+    else:
+        ax.set_ylabel('Density',fontsize=16,labelpad=-10)
+        ax.set_yticks([1e-5,1e0])
+    ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+    ax.set_xlim(20,90)
+    ax.legend(loc='best', frameon=False,fontsize=12,ncol=1)
+    ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=0)
+    ax.set_xticks([20,55,90])
+    
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
+
+
+def plot_figure3(fileName,oc=4,idx=7,savePath=None):
+    f = h5py.File(fileName,'r')
+    costs = ['L2','COULOMB','RANDOM','L4']
+    angles = np.zeros((4,len(f['oc_%i/%s/angles'%(oc,costs[0])][idx])))
+    for i,key in enumerate(costs):
+        angles[i] = f['oc_%i/%s/angles'%(oc,key)][idx]
+    fig = plt.figure('Figure3',figsize=(6,3))
+    fig.clf()
+    ax_angles = plt.axes([.125,.15,.35,.7])
+    labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
+    plot_figure3a(angles,labels,density=True,ax=ax_angles)
+    ax_bases = plt.axes([.55,.15,.4,.8])
+    plot_filters(f['oc_%i/L4/wbases'%(oc)][idx],ax=ax_bases)
+    fig.text(.01,.9,'a)',fontsize=14)
+    fig.text(.5,.9,'b)',fontsize=14)
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
+    else:
+        plt.show()
 
