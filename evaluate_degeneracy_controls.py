@@ -34,7 +34,7 @@ def get_W(w_init, degeneracy):
     X = np.ones((n_mixtures, 2), dtype='float32')
     ica = ocICA.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
                     degeneracy=degeneracy, lambd=0., w_init=w_init.copy())
-    return = ica.fit(X).components_
+    return ica.fit(X).components_
 
 def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources, n_mixtures):
     W_0 = np.zeros((len(initial_conditions),n_sources,n_mixtures))
