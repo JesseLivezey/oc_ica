@@ -94,7 +94,7 @@ def cost(degeneracy, Wn, W_T, lambd=None, a=None, p=None):
             else:
                 raise ValueError
             loss += error
-        if lambd > 0.
+        if lambd > 0.:
             penalty = T.log(T.cosh(S_T)).sum(axis=0).mean()
             loss += lambd * penalty
     else:
