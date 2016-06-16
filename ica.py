@@ -101,8 +101,6 @@ def cost(degeneracy, Wn, X_T, lambd=0., a=None, p=None):
         else:
             raise ValueError
         loss = error
-        print loss
-        print('error')
 
     if np.isinf(lambd):
         penalty = T.log(T.cosh(S_T)).sum(axis=0).mean()
@@ -110,8 +108,6 @@ def cost(degeneracy, Wn, X_T, lambd=0., a=None, p=None):
     elif lambd > 0.:
         penalty = T.log(T.cosh(S_T)).sum(axis=0).mean()
         loss += lambd * penalty
-        print('penalty')
-        print(lambd)
 
     X_T_normed = X_T/T.sqrt((X_T**2).sum(axis=0, keepdims=True))
     X_hat_T_normed = X_hat_T/T.sqrt((X_hat_T**2).sum(axis=0, keepdims=True))

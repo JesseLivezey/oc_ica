@@ -4,7 +4,11 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+import utils
+reload(utils)
 from utils import tile_raster_images
+mpl.rcParams['xtick.labelsize'] = 10
+mpl.rcParams['ytick.labelsize'] = 10
 
 class FixedOrderFormatter(mpl.ticker.ScalarFormatter):
     """Formats axis ticks using scientific notation with a constant order of 
@@ -92,9 +96,9 @@ def plot_angle_hist(angles,sparsity,savePath=None):
     -----------
     
     angles: array
-            dimensions: n_sparsityas x n_angles
+            dimensions: n_sparsity_values x n_angles
     sparsity:  array
-            sparsitya values
+            sparsity values
     """
     fig = plt.figure('angle_hist')
     fig.clf()
@@ -110,7 +114,7 @@ def plot_angle_hist(angles,sparsity,savePath=None):
     cax_label = r'sparsity'
     cax = plot_colorbar(cax_pos,len(sparsity),cax_label,cax_ticklabels)
     #ax.legend(loc='best', frameon=False,fontsize=12,ncol=3)
-    ax.set_xlabel('angle between bases',fontsize=20)
+    ax.set_xlabel(r'$\theta$',fontsize=20)
     ax.set_ylabel('counts',fontsize=20)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
@@ -118,7 +122,8 @@ def plot_angle_hist(angles,sparsity,savePath=None):
         plt.show()
 
 
-def plot_angle_hist_labels(angles,labels,density=True,savePath=None):
+def plot_angle_hist_labels(angles,labels,density=True,\
+                           savePath=None,ax=None):
     """
     Plots angle histograms
     
@@ -126,44 +131,46 @@ def plot_angle_hist_labels(angles,labels,density=True,savePath=None):
     -----------
     
     angles: array
-            dimensions: n_sparsity x n_angles
+            dimensions: n_sparsity_values x n_angles
     sparsity:  array
             sparsity values
     """
-    fig = plt.figure('angle_hist',figsize=(4,4))
-    fig.clf()
-    ax = plt.axes([.15,.15,.8,.8])
+    if ax is None:
+        fig = plt.figure('angle_hist',figsize=(4,4))
+        fig.clf()
+        ax = plt.axes([.15,.1,.8,.8])
     col = np.linspace(0,1,len(labels))
     for i in xrange(len(labels)):
         h,b = np.histogram(angles[i],np.arange(0,91))
         if density:
              h= h/np.sum(h)
-        ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=2,label=labels[i])
+        ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i])
     ax.set_yscale('log')
     if not density:
-        ax.set_ylabel('counts',fontsize=12)
+        ax.set_ylabel('Counts',fontsize=16)
         ax.set_yticks([1e0,1e2,1e4])
     else:
-        ax.set_ylabel('Density',fontsize=12,labelpad=0)
+        ax.set_ylabel('Density',fontsize=16,labelpad=-10)
         ax.set_yticks([1e-5,1e0])
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     #ax.set_xlim(np.min(angles),90)
     ax.set_xlim(20,90)
     ax.legend(loc='best', frameon=False,fontsize=12,ncol=1)
-    ax.set_xlabel('Angles',fontsize=12)
+    ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=0)
     ax.set_xticks([20,55,90])
     
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
-    else:
-        plt.show()
 
 
 def plot_norms(mode=0,savePath=None):
-    fig = plt.figure('norms')
+    import matplotlib as mpl
+    formatter=mpl.ticker.FormatStrFormatter('%.1f')
+    fig = plt.figure('norms',figsize=(3,3))
     fig.clf()
     ax = plt.axes([.15,.15,.8,.8])
     norms = ['L2', 'COULOMB', 'RANDOM', 'L4']
+    norms = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
     col = np.linspace(0,1,len(norms))
     if mode==0:
         xx = np.linspace(0,1,100)
@@ -173,7 +180,6 @@ def plot_norms(mode=0,savePath=None):
         fun = [lambda x: -2*x,lambda x:-x/(1-x**2)**(3/2),lambda x:-(2*x)/(1-x**2),lambda x:-4*x**3] 
     for i in xrange(4):
         ax.plot(xx,fun[i](xx),color=cm.viridis(col[i]),lw=2,label=norms[i])
-    ax.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
     if mode==1:
         ax.spines['left'].set_position('zero')
         ax.spines['right'].set_color('none')
@@ -185,17 +191,21 @@ def plot_norms(mode=0,savePath=None):
     ax.yaxis.set_ticks_position('left')
     ax.set_xlim(np.min(xx),np.max(xx))
     if mode==0:
+        ax.legend(loc='upper left', frameon=False,fontsize=10,ncol=1)
         ax.set_ylim(0,3)
-        ax.set_ylabel(r'$C(\cos\,\theta)$',fontsize=20)
-        ax.set_xlabel(r'$\cos\,\theta$',fontsize=20)
+        ax.set_xticks(np.arange(0,1.1,.25))
+        ax.set_yticks(np.arange(0,3.1,1.))
+        ax.xaxis.set_major_formatter(formatter)
+        ax.set_ylabel(r'$C(\cos\,\theta)$',fontsize=12,labelpad=0)
+        ax.set_xlabel(r'$\cos\,\theta$',fontsize=12)
     elif mode==1:
         ax.set_ylim(-.2,.2)
-        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',fontsize=20,labelpad=220)
-        ax.set_xlabel(r'$\cos\,\theta$',fontsize=20,labelpad=180)
+        ax.set_xticks(np.arange(-.15,.16,.15))
+        ax.set_yticks(np.arange(-.2,.21,.1))
+        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',fontsize=12,labelpad=65)#20)
+        ax.set_xlabel(r'$\cos\,\theta$',fontsize=12,labelpad=80)#180)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
-    else:
-        plt.show()
 
 def plot_angle_diff_hist(angles_null, angles, sparsity,savePath=None):
     """
@@ -223,17 +233,17 @@ def plot_angle_diff_hist(angles_null, angles, sparsity,savePath=None):
     cax_label = r'sparsity'
     cax = plot_colorbar(cax_pos,len(sparsity),cax_label,cax_ticklabels)
     #ax.legend(loc='best', frameon=False,fontsize=12,ncol=3)
-    ax.set_xlabel('angle between bases',fontsize=20)
+    ax.set_xlabel(r'$\theta$',fontsize=20)
     ax.set_ylabel('counts',fontsize=20)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
-    else:
-        plt.show()
 
-def plot_filters(filters,n_pixels=8,n_filters=16,savePath=None):
-    fig = plt.figure('filters')
-    fig.clf()
-    ax = plt.axes()
+def plot_filters(filters,n_pixels=8,n_filters=16,\
+                 savePath=None,ax=None):
+    if ax is None:
+        fig = plt.figure('filters')
+        fig.clf()
+        ax = plt.axes()
     im = tile_raster_images(filters,(n_pixels,n_pixels),(n_filters,n_filters),
                        (2,2),scale_rows_to_unit_interval=False,
                        output_pixel_vals=False)
@@ -241,8 +251,23 @@ def plot_filters(filters,n_pixels=8,n_filters=16,savePath=None):
     ax.set_axis_off()
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
-    else:
-        plt.show()
 
-
+def plot_figure3(fileName,oc=4,idx=7,savePath=None):
+    import h5py
+    f = h5py.File(fileName,'r')
+    labels = ['L2','COULOMB','RANDOM','L4']
+    angles = np.zeros((4,len(f['oc_%i/%s/angles'%(oc,labels[0])][idx])))
+    for i,key in enumerate(labels):
+        angles[i] = f['oc_%i/%s/angles'%(oc,key)][idx]
+    fig = plt.figure('Figure3',figsize=(6,3))     
+    fig.clf()
+    ax_angles = plt.axes([.125,.15,.35,.7])
+    labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
+    plot_angle_hist_labels(angles,labels,density=True,ax=ax_angles)
+    ax_bases = plt.axes([.55,.15,.4,.8])
+    plot_filters(f['oc_%i/L4/wbases'%(oc)][idx],ax=ax_bases)
+    fig.text(.01,.9,'a)',fontsize=14)
+    fig.text(.5,.9,'b)',fontsize=14)
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
 
