@@ -1,20 +1,25 @@
+from __future__ import division
 import numpy as np
-from numpy.linalg import norm
+from numpy.linalg import inv,norm
 import ica as ocICA
 reload(ocICA)
 
-def decorr(w):
-    return (3./2.)*w - (1./2.)*w.dot(w.T).dot(w)
+def decorr_complete(X):
+    return inv(np.sqrt(X.dot(X.T))).dot(X)
+#    return X.dot(X.T.dot(X)**(-1/2))
 
-def get_Winit(n_sources, n_mixtures, init=random):
+def decorr(w):
+    return (3/2) * w - (1/2) * w.dot(w.T).dot(w)
+
+def get_Winit(n_sources, n_mixtures, init='random'):
     if init=='random':
         w = np.random.randn(n_sources, n_mixtures)
     elif init=='collimated':
         w = np.tile(np.random.randn(1, n_mixtures), (n_sources, 1))+\
-            np.random.randn(n_sources, n_mixtures)/2.
+            np.random.randn(n_sources, n_mixtures)/2
     elif init=='pathological':
         w = np.tile(np.eye(n_mixtures), (n_sources//n_mixtures, 1))+\
-            np.random.randn(n_sources, n_mixtures)/100.
+            np.random.randn(n_sources, n_mixtures)/100
     w = w/norm(w_0, axis=-1, keepdims=True)
     return w
 
@@ -48,4 +53,4 @@ def compute_angles(w):
     w = w/norm(w, axis=-1, keepdims=True)
     gram = w.dot(w.T)
     gram_off_diag = gram[np.tri(gram.shape[0], k=-1, dtype=bool)]
-    return np.arccos(abs(gram_off_diag))/np.pi*180.
+    return np.arccos(abs(gram_off_diag))/np.pi*180
