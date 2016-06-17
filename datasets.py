@@ -7,7 +7,7 @@ from random import sample
 from scipy.io import loadmat
 from scipy import signal
 from sklearn.feature_extraction import image
-from skimage.filters import gabor_kernel
+#from skimage.filters import gabor_kernel
 from scipy.optimize import minimize
 
 import theano

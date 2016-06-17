@@ -4,7 +4,9 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+import utils
 from utils import tile_raster_images
+reload(utils)
 mpl.rcParams['xtick.labelsize'] = 10
 mpl.rcParams['ytick.labelsize'] = 10
 
@@ -270,9 +272,9 @@ def plot_figure2d():
 
 
 def plot_filters(filters,n_pixels=8,n_filters=16,\
-                 savePath=None,ax=None):
+                 savePath=None,ax=None,figname='filters'):
     if ax is None:
-        fig = plt.figure('filters')
+        fig = plt.figure(figname)
         fig.clf()
         ax = plt.axes()
     im = tile_raster_images(filters,(n_pixels,n_pixels),(n_filters,n_filters),

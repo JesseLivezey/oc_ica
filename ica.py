@@ -196,7 +196,7 @@ def setup_sgd(n_sources, n_mixtures, w_0, lambd, degeneracy, learning_rule):
     return W, train_f
 
 def fit_sgd(W, train_f, data, components_,
-            tol=1e-5, batch_size=512, n_epochs=50,
+            tol=1e-5, batch_size=512, n_epochs=1000,
             seed=20160615):
     """
     Fit components_ from data.

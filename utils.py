@@ -109,7 +109,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
         dt = X.dtype
         if output_pixel_vals:
             dt = 'uint8'
-        out_array = numpy.zeros(out_shape, dtype=dt)
+        out_array = numpy.ones(out_shape, dtype=dt)*numpy.nan
 
         for tile_row in xrange(tile_shape[0]):
             for tile_col in xrange(tile_shape[1]):

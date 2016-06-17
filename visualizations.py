@@ -1,5 +1,5 @@
 from __future__ import division
-import pdb
+import pdb,h5py
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -253,7 +253,6 @@ def plot_filters(filters,n_pixels=8,n_filters=16,\
         plt.savefig(savePath,dpi=300)
 
 def plot_figure3(fileName,oc=4,idx=7,savePath=None):
-    import h5py
     f = h5py.File(fileName,'r')
     labels = ['L2','COULOMB','RANDOM','L4']
     angles = np.zeros((4,len(f['oc_%i/%s/angles'%(oc,labels[0])][idx])))
