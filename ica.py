@@ -11,13 +11,13 @@ from theano.compat.python2x import OrderedDict
 __authors__ = "Jesse Livezey, Alex Bujan"
 
 
-def sgd(params, grads, learning_rate=.1):
+def sgd(params, grads, learning_rate=1.):
     updates = OrderedDict()
     for param, grad in zip(params, grads):
         updates[param] = param - learning_rate * grad
     return updates
 
-def momentum(params, grads, learning_rate=.01, momentum=.9,
+def momentum(params, grads, learning_rate=1., momentum=.5,
              nesterov=True):
     """
     Nesterov momentum based on pylearn2 implementation.
@@ -213,21 +213,28 @@ def fit_sgd(W, train_f, data, components_,
         n_batches += 1
 
     lowest_cost = np.inf
-    cur_cost = None
-    decay_time = n_batches//3
-    decay = np.exp(-1./decay_time)
 
     for ii in range(n_epochs):
         order = rng.permutation(n_examples)
+        cur_cost = 0.
+        error = 0.
+        penalty = 0.
+        mse = 0.
         for jj in range(n_batches):
             start = jj * batch_size
             end = (jj + 1) * batch_size
-            res = train_f(data[:, order[start:end]].astype('float32'))
-            if cur_cost is None:
-                cur_cost = res[0]
-            else:
-                cur_cost = cur_cost*decay+res[0]*(1-decay)
-        print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(*res))
+            batch = data[:, order[start:end]].astype('float32')
+            res = train_f(batch)
+            cur_cost += res[0]*batch.shape[1]
+            error += res[1]*batch.shape[1]
+            penalty += res[2]*batch.shape[1]
+            mse += res[3]*batch.shape[1]
+        cur_cost /= n_examples
+        error /= n_examples
+        penalty /= n_examples
+        mse /= n_examples
+        print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(cur_cost,
+            error, penalty, mse))
         if cur_cost < lowest_cost-tol or True:
             lowest_cost = cur_cost
         else:
