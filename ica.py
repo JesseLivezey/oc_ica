@@ -70,14 +70,18 @@ def cost(degeneracy, Wn, X_T, lambd=0., a=None, p=None):
     gram = T.dot(Wn, Wn.T)
     gram_diff = gram-T.eye(gram.shape[0])
     loss = None
+    assert lambd >= 0.
 
     if lambd == 0. or lambd > 0. and not np.isinf(lambd):
+        if degeneracy == 'L2':
+            degeneracy = 'Lp'
+            p = 2
+        elif degeneracy == 'L4':
+            degeneracy = 'Lp'
+            p = 4
+
         if degeneracy == 'RICA':
             error = .5 * T.sum((X_hat_T-X_T)**2, axis=0).mean()
-        elif degeneracy == 'L2':
-            error = (1./2) * T.sum(gram_diff**2)
-        elif degeneracy == 'L4':
-            error = (1./4) * T.sum((gram_diff**2)**2)
         elif degeneracy == 'Lp':
             assert isinstance(p, int)
             assert (p % 2) == 0
