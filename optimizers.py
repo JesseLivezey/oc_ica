@@ -130,6 +130,8 @@ class Optimizer(object):
             elif degeneracy == 'RANDOM_A':
                 epsilon = 0.1
                 error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
+            elif degeneracy == 'COHERENCE':
+                error = .5 * abs(gram).max()
             else:
                 raise ValueError
             loss = error

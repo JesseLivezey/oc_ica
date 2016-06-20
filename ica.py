@@ -155,5 +155,5 @@ class ICA(BaseEstimator, TransformerMixin):
             Loss for each data sample.
         """
         self._normalize_components()
-        losses = self.optimizer.lossescallback_f(X, self.components_)
+        losses = self.optimizer.losses(X, self.components_)
         return losses
