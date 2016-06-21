@@ -68,8 +68,7 @@ class Optimizer(object):
     def fit(self, data, components_):
         raise NotImplementedError
 
-    @staticmethod
-    def transforms(W, X):
+    def transforms(self, W, X):
         S = W.dot(X)
         X_hat = W.T.dot(S)
         return S, X_hat
@@ -89,12 +88,11 @@ class Optimizer(object):
         self.transform = theano.function(inputs=[X, W], outputs=[S])
         self.reconstruct = theano.function(inputs=[X, W], outputs=[X_hat])
         
-    @staticmethod
-    def cost(degeneracy, Wn, X, lambd=0., a=None, p=None):
+    def cost(self, degeneracy, Wn, X, lambd=0., a=None, p=None):
         """
         Create costs and intermediate values from input variables.
         """
-        S, X_hat = transforms(Wn, X)
+        S, X_hat = self.transforms(Wn, X)
         gram = T.dot(Wn, Wn.T)
         gram_diff = gram-T.eye(gram.shape[0])
         loss = None
@@ -111,6 +109,7 @@ class Optimizer(object):
             if degeneracy == 'RICA':
                 error = .5 * T.sum((X_hat-X)**2, axis=0).mean()
             elif degeneracy == 'Lp':
+                print p
                 assert isinstance(p, int)
                 assert (p % 2) == 0
                 error = gram_diff
@@ -135,6 +134,8 @@ class Optimizer(object):
             else:
                 raise ValueError
             loss = error
+        else:
+            error = None
 
         if np.isinf(lambd):
             penalty = T.log(T.cosh(S)).sum(axis=0).mean()
@@ -150,7 +151,7 @@ class Optimizer(object):
 
 
 class LBFGSB(Optimizer):
-    def setup(self, n_sources, n_mixtures, degeneracy, lambd):
+    def setup(self, n_sources, n_mixtures, degeneracy, lambd, a, p):
         """
         L-BFGS-B Optimization
         """
@@ -162,7 +163,8 @@ class LBFGSB(Optimizer):
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
 
-        loss, error, penalty, mse, S, X_hat = cost(degeneracy, Wn, X, lambd)
+        loss, error, penalty, mse, S, X_hat = self.cost(degeneracy, Wn, X,
+                                                        lambd, a, p)
         loss_grad = T.grad(loss, Wv)
 
         X_normed = X/T.sqrt((X**2).sum(axis=0, keepdims=True))
@@ -170,6 +172,10 @@ class LBFGSB(Optimizer):
         mse = ((X_normed-X_hat_normed)**2).sum(axis=0).mean()
 
         self.f_df = theano.function(inputs=[Wv], outputs=[loss,loss_grad])
+        if error is None:
+            error = 0.*loss
+        if penalty is None:
+            penalty = 0.*loss
         self.callback_f = theano.function(inputs=[Wv],
                                           outputs=[loss, error, penalty, mse])
 
@@ -193,28 +199,35 @@ class LBFGSB(Optimizer):
 
 
 class SGD(Optimizer):
-    def setup(self, n_sources, n_mixtures, w_0, lambd, degeneracy, learning_rule):
+    def setup(self, n_sources, n_mixtures, w_0, lambd, degeneracy,
+              learning_rule, a, p):
         """
         SGD optimization
         """
         X = T.matrix('X')
-        self.W  = theano.shared(np.random.randn(n_sources, n_mixtures).astype('float32'))
+        W  = theano.shared(np.random.randn(n_sources, n_mixtures).astype('float32'))
+        self.W = W
         epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
         
-        loss, error, penalty, mse, S, X_hat = cost(degeneracy, Wn, X, lambd)
+        loss, error, penalty, mse, S, X_hat = self.cost(degeneracy, Wn, X,
+                                                        lambd, a, p)
         loss_grad = T.grad(loss, W)
         updates = learning_rule([W], [loss_grad])
 
         X_normed = X/T.sqrt((X**2).sum(axis=0, keepdims=True))
         X_hat_normed = X_hat/T.sqrt((X_hat**2).sum(axis=0, keepdims=True))
         mse = ((X_normed-X_hat_normed)**2).sum(axis=0).mean()
+        if error is None:
+            error = 0.*loss
+        if penalty is None:
+            penalty = 0.*loss
 
         self.train_f = theano.function(inputs=[X],
                                        outputs=[loss, error, penalty, mse],
                                        updates=updates)
-        return W, train_f
+        return W, self.train_f
 
     def fit(self, data, components_,
             tol=1e-5, batch_size=512, n_epochs=1000,
@@ -241,7 +254,7 @@ class SGD(Optimizer):
                 start = jj * batch_size
                 end = (jj + 1) * batch_size
                 batch = data[:, order[start:end]].astype('float32')
-                res = train_f(batch)
+                res = self.train_f(batch)
                 cur_cost += res[0]*batch.shape[1]
                 error += res[1]*batch.shape[1]
                 penalty += res[2]*batch.shape[1]

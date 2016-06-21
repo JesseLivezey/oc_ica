@@ -7,6 +7,7 @@ import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 import optimizers
+reload(optimizers)
 
 __authors__ = "Jesse Livezey, Alex Bujan"
 
@@ -61,10 +62,15 @@ class ICA(BaseEstimator, TransformerMixin):
         self.n_sources = n_sources
         self.components_ = w_0
         if optimizer == 'L-BFGS-B':
-            self.optimizer = optimizers.LBFGSB(n_sources, n_mixtures, degeneracy, lambd)
+            self.optimizer = optimizers.LBFGSB(n_sources=n_sources, n_mixtures=n_mixtures,
+                                               degeneracy=degeneracy,
+                                               lambd=lambd, p=p, a=a)
         elif optimizer == 'sgd':
-            self.optimizer = optimizers.SGD(n_sources, n_mixtures, w_0,
-                                            lambd, degeneracy, learning_rule)
+            self.optimizer = optimizers.SGD(n_sources=n_sources, n_mixtures=n_mixtures,
+                                            w_0=w_0, lambd=lambd,
+                                            degeneracy=degeneracy,
+                                            learning_rule=learning_rule,
+                                            p=p, a=a)
         else:
             raise ValueError
 
@@ -82,6 +88,7 @@ class ICA(BaseEstimator, TransformerMixin):
         """
         self._normalize_components()
         w_f = self.optimizer.fit(X, self.components_)
+        self.components_ = w_f
         self._normalize_components()
         return self
 
