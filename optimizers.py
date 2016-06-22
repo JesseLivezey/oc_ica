@@ -218,6 +218,7 @@ class SGD(Optimizer):
         """
         SGD optimization
         """
+        print n_sources
         X = T.matrix('X')
         W  = theano.shared(np.random.randn(n_sources, n_mixtures).astype('float32'))
         self.W = W
