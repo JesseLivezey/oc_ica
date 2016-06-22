@@ -5,16 +5,24 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import utils
-from utils import tile_raster_images
+from utils import tile_raster_images as tri
 reload(utils)
+from utils import fractional_polar_axes as polar
+
 mpl.rcParams['xtick.labelsize'] = 10
 mpl.rcParams['ytick.labelsize'] = 10
+
 
 import evaluate_degeneracy_controls as dgcs
 reload(dgcs)
 from optimizers import adam
 import ica as ocica
 import datasets as ds
+reload(ds)
+from ds import generate_filterbank as gfb
+import gabor_fit as fit
+reload(fit)
+from scipy.ndimage.filters import gaussian_filter as gf
 
 
 def plot_costs(mode=0,savePath=None):
@@ -281,7 +289,7 @@ def plot_filters(filters,n_pixels=8,n_filters=16,\
         fig = plt.figure(figname)
         fig.clf()
         ax = plt.axes()
-    im = tile_raster_images(filters,(n_pixels,n_pixels),(n_filters,n_filters),
+    im = tri(filters,(n_pixels,n_pixels),(n_filters,n_filters),
                        (2,2), scale_rows_to_unit_interval=False,
                        output_pixel_vals=False)
     ax.imshow(im,aspect='auto',interpolation='nearest',cmap='gray')
@@ -326,43 +334,95 @@ def plot_figure3a(angles,labels,density=True,\
     ax.legend(loc='best', frameon=False,fontsize=12,ncol=1)
     ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=0)
     ax.set_xticks([20,55,90])
-    
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
-
-
-def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
-    costs = ['L2','COULOMB','RANDOM','L4']
-    X_train, X_pca, K, S, X_mean, A, X_test, X_test_pca = ds.generate_data(demo=1)
-    n_mixtures = X_pca.shape[0]
-    n_sources = n_mixtures*oc
-    angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
-    if bases is None:
-        bases = np.zeros((len(costs),n_sources,n_sources))
-        for i in xrange(len(costs)):
-            ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
-                            degeneracy=costs[i],optimizer='sgd',learning_rule=adam)
-            ica.fit(X_pca)
-            bases[i] = ica.components_
-            angles[i] = dgcs.compute_angles(bases[i])
-    else:
-        for i in xrange(len(costs)):
-            angles[i] = dgcs.compute_angles(bases[i])
-    '''
-    figure
-    '''
-    fig = plt.figure('Figure3',figsize=(6,3))
-    fig.clf()
-    ax_angles = plt.axes([.125,.15,.35,.7])
-    labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
-    plot_figure3a(angles,labels,density=True,ax=ax_angles)
-    ax_bases = plt.axes([.55,.15,.4,.8])
-    w = bases[3]
-    plot_filters(w.dot(K),ax=ax_bases)
-    fig.text(.01,.9,'a)',fontsize=14)
-    fig.text(.5,.9,'b)',fontsize=14)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
         plt.show()
+
+
+def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
+                 costs = ['L2','COULOMB','RANDOM','L4']):
+
+    #if not given, compute bases
+    if bases is None:
+        X, K = ds.generate_data(demo=1)[1:3]
+        bases = generate_bases(X, costs=costs, oc=oc,lambd=lambd)
+
+    #compute the angles
+    n_sources = bases.shape[0]
+    angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
+    for i in xrange(len(costs)):
+        angles[i] = dgcs.compute_angles(bases[i])
+
+    #generate figure
+    fig = plt.figure('Figure3',figsize=(6,3))
+    fig.clf()
+    labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
+    #figure3a
+    ax_angles = plt.axes([.125,.15,.35,.7])
+    plot_figure3a(angles,labels,density=True,ax=ax_angles)
+    #figure3b
+    ax_bases = plt.axes([.55,.15,.4,.8])
+    w = bases[-1]
+    plot_filters(w.dot(K),ax=ax_bases)
+    fig.text(.01,.9,'a)',fontsize=14)
+    fig.text(.5,.9,'b)',fontsize=14)
+
+
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
+    else:
+        plt.show()
+
+def generate_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
+    n_mixtures = X.shape[0]
+    n_sources  = n_sources*oc
+    bases = np.zeros((len(costs),n_sources,n_sources))
+    for i in xrange(len(costs)):
+        ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
+                        degeneracy=costs[i],optimizer='sgd',learning_rule=adam)
+        ica.fit(X)
+        bases[i] = ica.components_
+    return bases
+
+
+def get_Gabor_fits(bases=None,oc=4,lambd=10.,
+                    costs = ['L2','COULOMB','RANDOM','L4']):
+    params = []
+    #if not given, compute bases
+    if bases is None:
+        X, K = ds.generate_data(demo=1)[1:3]
+        bases = generate_bases(X, costs=costs, oc=oc,lambd=lambd)
+    for i in xrange(bases.shape[0]):
+        fitter = fit.GaborFit()
+        params.append(fitter.fit(bases[i]))
+    return params
+
+def plot_GaborFit_xy(params,labels,cmap=plt.cm.viridis):
+    col = np.linspace(0,1,len(labels))
+    fig = plt.figure('xy')
+    ax = fig.add_subplot(111)
+    for i in xrange(len(labels)):
+        x = params[i][1][0]
+        y = params[i][1][1]
+        k = params[i][1][4]
+        ax.plot(x[np.where(k>1)],y[np.where(k>1)],'x',color=cmap(col[i]),ms=10,mew=2)
+    ax.set_xlim(0,7)
+    ax.set_ylim(0,7)
+    plt.show()
+
+
+def plot_GaborFit_polar(params,labels,cmap=plt.cm.viridis):
+    fig = plt.figure('polar',figsize=(2,2))
+    fig.clf()
+    a1 = polar(fig)
+    # example spiral plot:
+    thstep = 10
+    th = np.arange(0, 180+thstep, thstep) # deg
+    rstep = 1/(len(th)-1)
+    r = np.arange(0, 1+rstep, rstep)
+    freq = params_[0][1][4]
+    theta = params_[0][1][2]*2*np.pi
+    a1.plot(theta,freq,'x',color=plt.cm.viridis(.5),ms=10,mew=2)
+    plt.show()
 
