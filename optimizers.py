@@ -63,7 +63,7 @@ class Optimizer(object):
     def __init__(self, **fit_kwargs):
         self.fit_kwargs = fit_kwargs
         self.setup(**fit_kwargs)
-        self.setup_transforms()
+        self.setup_transforms(**fit_kwargs)
 
     def fit(self, data, components_):
         raise NotImplementedError
@@ -73,7 +73,7 @@ class Optimizer(object):
         X_hat = W.T.dot(S)
         return S, X_hat
 
-    def setup_transforms(self):
+    def setup_transforms(self, **kwargs):
         """
         Create transform_f and reconstruct_f functions.
         """
@@ -87,8 +87,18 @@ class Optimizer(object):
 
         self.transform = theano.function(inputs=[X, W], outputs=[S])
         self.reconstruct = theano.function(inputs=[X, W], outputs=[X_hat])
+
+        loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, **kwargs)
+        outputs = [loss, error, penalty, mse]
+        outputs = [o if o is not None else 0.* loss for o in outputs]
+
+        self.losses_f = theano.function(inputs=[X, W],
+                                        outputs=outputs)
+    def losses(self, X, W):
+        return self.losses_f(X.astype('float32'), W.astype('float32'))
         
-    def cost(self, degeneracy, Wn, X, lambd=0., a=None, p=None):
+    def cost(self, Wn, X, degeneracy=None, lambd=0.,
+             a=None, p=None, **kwargs):
         """
         Create costs and intermediate values from input variables.
         """
@@ -98,51 +108,55 @@ class Optimizer(object):
         loss = None
         assert lambd >= 0.
 
-        if lambd == 0. or lambd > 0. and not np.isinf(lambd):
-            if degeneracy == 'L2':
-                degeneracy = 'Lp'
-                p = 2
-            elif degeneracy == 'L4':
-                degeneracy = 'Lp'
-                p = 4
+        if degeneracy == 'L2':
+            degeneracy = 'Lp'
+            p = 2
+        elif degeneracy == 'L4':
+            degeneracy = 'Lp'
+            p = 4
 
-            if degeneracy == 'RICA':
-                error = .5 * T.sum((X_hat-X)**2, axis=0).mean()
-            elif degeneracy == 'Lp':
-                print p
-                assert isinstance(p, int)
-                assert (p % 2) == 0
-                error = gram_diff
-                for ii in range(p//2):
-                    error = error**2
-                error = (1./p) * T.sum(error)
-            elif degeneracy == 'COULOMB':
-                epsilon = 0.1
-                error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
-            elif degeneracy == 'COULOMB_A':
-                assert a is not None
-                epsilon = 0.1
-                error = .5 * T.sum((1. / (1. + epsilon - gram**2)**(1 / a)) - (gram**2 / a))
-            elif degeneracy == 'RANDOM':
-                epsilon = 0.1
-                error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
-            elif degeneracy == 'RANDOM_A':
-                epsilon = 0.1
-                error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
-            elif degeneracy == 'COHERENCE':
-                error = abs(gram_diff).max()
-            else:
-                raise ValueError
-            loss = error
-        else:
+        if degeneracy == 'RICA':
+            error = .5 * T.sum((X_hat-X)**2, axis=0).mean()
+        elif degeneracy == 'Lp':
+            assert isinstance(p, int)
+            assert (p % 2) == 0
+            error = gram_diff
+            for ii in range(p//2):
+                error = error**2
+            error = (1./p) * T.sum(error)
+        elif degeneracy == 'COULOMB':
+            epsilon = 0.1
+            error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
+        elif degeneracy == 'COULOMB_A':
+            assert a is not None
+            epsilon = 0.1
+            error = .5 * T.sum((1. / (1. + epsilon - gram**2)**(1 / a)) - (gram**2 / a))
+        elif degeneracy == 'RANDOM':
+            epsilon = 0.1
+            error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
+        elif degeneracy == 'RANDOM_A':
+            epsilon = 0.1
+            error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
+        elif degeneracy == 'COHERENCE':
+            error = abs(gram_diff).max()
+        elif degeneracy is None:
             error = None
+        else:
+            raise ValueError
 
-        if np.isinf(lambd):
+        if ((degeneracy is not None) and
+            (lambd == 0. or lambd > 0.) and
+            not np.isinf(lambd)):
+            loss = error
+
+        if np.isinf(lambd) or degeneracy is None:
             penalty = T.log(T.cosh(S)).sum(axis=0).mean()
             loss = penalty
         elif lambd > 0.:
             penalty = T.log(T.cosh(S)).sum(axis=0).mean()
             loss += lambd * penalty
+        else:
+            penalty = None
 
         X_normed = X/T.sqrt((X**2).sum(axis=0, keepdims=True))
         X_hat_normed = X_hat/T.sqrt((X_hat**2).sum(axis=0, keepdims=True))
@@ -163,7 +177,7 @@ class LBFGSB(Optimizer):
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
 
-        loss, error, penalty, mse, S, X_hat = self.cost(degeneracy, Wn, X,
+        loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, degeneracy,
                                                         lambd, a, p)
         loss_grad = T.grad(loss, Wv)
 
@@ -211,7 +225,7 @@ class SGD(Optimizer):
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
         
-        loss, error, penalty, mse, S, X_hat = self.cost(degeneracy, Wn, X,
+        loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, degeneracy,
                                                         lambd, a, p)
         loss_grad = T.grad(loss, W)
         updates = learning_rule([W], [loss_grad])

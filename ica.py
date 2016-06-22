@@ -34,7 +34,7 @@ class ICA(BaseEstimator, TransformerMixin):
         Randomstate for initialization.
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-2,
-                 w_init=None, degeneracy='RICA', p=None, rng=None,
+                 w_init=None, degeneracy=None, p=None, rng=None,
                  a=None, optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
 
