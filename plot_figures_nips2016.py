@@ -12,6 +12,10 @@ mpl.rcParams['ytick.labelsize'] = 10
 
 import evaluate_degeneracy_controls as dgcs
 reload(dgcs)
+from optimizers import adam
+import ica as ocica
+import datasets as ds
+
 
 def plot_costs(mode=0,savePath=None):
     formatter=mpl.ticker.FormatStrFormatter('%.1f')
@@ -31,7 +35,7 @@ def plot_costs(mode=0,savePath=None):
         fun = [lambda x: 2*x,lambda x: x/(1-x**2)**(3/2),lambda x: (2*x)/(1-x**2),lambda x: 4*x**3] 
 #        fun = [lambda x: -2*x,lambda x:-x/(1-x**2)**(3/2),lambda x:-(2*x)/(1-x**2),lambda x:-4*x**3]
     for i in xrange(4):
-        ax.plot(xx,fun[i](xx),color=cm.jet(col[i]),lw=2,label=costs[i])
+        ax.plot(xx,fun[i](xx),color=cm.viridis(col[i]),lw=2,label=costs[i])
     if mode==1:
         ax.spines['left'].set_position('zero')
         ax.spines['right'].set_color('none')
@@ -63,7 +67,7 @@ def plot_costs(mode=0,savePath=None):
         plt.savefig(savePath,dpi=300)
 
 
-def plot_angles_1column(W,W_0,costs,cmap=plt.cm.jet,
+def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
                         savePath=None,density=True):
     col = np.linspace(0,1,W.shape[1])
     if W.shape[0]>1:
@@ -147,7 +151,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.jet,
 
 
 
-def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.jet,
+def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
                             savePath=None,density=True):
     col = np.linspace(0,1,W.shape[0])
     fig,(ax, ax2) = plt.subplots(1,2,sharey=True)
@@ -327,19 +331,34 @@ def plot_figure3a(angles,labels,density=True,\
         plt.savefig(savePath,dpi=300)
 
 
-def plot_figure3(fileName,oc=4,idx=7,savePath=None):
-    f = h5py.File(fileName,'r')
+def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
     costs = ['L2','COULOMB','RANDOM','L4']
-    angles = np.zeros((4,len(f['oc_%i/%s/angles'%(oc,costs[0])][idx])))
-    for i,key in enumerate(costs):
-        angles[i] = f['oc_%i/%s/angles'%(oc,key)][idx]
+    X_train, X_pca, K, S, X_mean, A, X_test, X_test_pca = ds.generate_data(demo=1)
+    n_mixtures = X_pca.shape[0]
+    n_sources = n_mixtures*oc
+    angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
+    if bases is None:
+        bases = np.zeros((len(costs),n_sources,n_sources))
+        for i in xrange(len(costs)):
+            ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
+                            degeneracy=costs[i],optimizer='sgd',learning_rule=adam)
+            ica.fit(X_pca)
+            bases[i] = ica.components_
+            angles[i] = dgcs.compute_angles(bases[i])
+    else:
+        for i in xrange(len(costs)):
+            angles[i] = dgcs.compute_angles(bases[i])
+    '''
+    figure
+    '''
     fig = plt.figure('Figure3',figsize=(6,3))
     fig.clf()
     ax_angles = plt.axes([.125,.15,.35,.7])
     labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
     plot_figure3a(angles,labels,density=True,ax=ax_angles)
     ax_bases = plt.axes([.55,.15,.4,.8])
-    plot_filters(f['oc_%i/L4/wbases'%(oc)][idx],ax=ax_bases)
+    w = bases[3]
+    plot_filters(w.dot(K),ax=ax_bases)
     fig.text(.01,.9,'a)',fontsize=14)
     fig.text(.5,.9,'b)',fontsize=14)
     if savePath is not None:
