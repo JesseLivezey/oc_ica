@@ -17,9 +17,9 @@ import evaluate_degeneracy_controls as dgcs
 reload(dgcs)
 from optimizers import adam
 import ica as ocica
+reload(ocica)
 import datasets as ds
 reload(ds)
-from ds import generate_filterbank as gfb
 import gabor_fit as fit
 reload(fit)
 from scipy.ndimage.filters import gaussian_filter as gf
@@ -346,7 +346,7 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
     #if not given, compute bases
     if bases is None:
         X, K = ds.generate_data(demo=1)[1:3]
-        bases = generate_bases(X, costs=costs, oc=oc,lambd=lambd)
+        bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
 
     #compute the angles
     n_sources = bases.shape[0]
@@ -374,9 +374,9 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
     else:
         plt.show()
 
-def generate_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
+def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     n_mixtures = X.shape[0]
-    n_sources  = n_sources*oc
+    n_sources  = n_mixtures*oc
     bases = np.zeros((len(costs),n_sources,n_sources))
     for i in xrange(len(costs)):
         ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
@@ -386,16 +386,19 @@ def generate_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     return bases
 
 
-def get_Gabor_fits(bases=None,oc=4,lambd=10.,
+def get_Gabor_params(bases=None,oc=4,lambd=10.,
                     costs = ['L2','COULOMB','RANDOM','L4']):
     params = []
     #if not given, compute bases
     if bases is None:
         X, K = ds.generate_data(demo=1)[1:3]
-        bases = generate_bases(X, costs=costs, oc=oc,lambd=lambd)
+        bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
     for i in xrange(bases.shape[0]):
         fitter = fit.GaborFit()
-        params.append(fitter.fit(bases[i]))
+        n_sources,n_mixtures = bases[i].shape
+        l = np.sqrt(n_mixtures)
+        w = bases[i].reshape((n_sources,l,l)).T
+        params.append(fitter.fit(w))
     return params
 
 def plot_GaborFit_xy(params,labels,cmap=plt.cm.viridis):
@@ -421,8 +424,8 @@ def plot_GaborFit_polar(params,labels,cmap=plt.cm.viridis):
     th = np.arange(0, 180+thstep, thstep) # deg
     rstep = 1/(len(th)-1)
     r = np.arange(0, 1+rstep, rstep)
-    freq = params_[0][1][4]
-    theta = params_[0][1][2]*2*np.pi
+    freq = params[0][1][4]
+    theta = params[0][1][2]*2*np.pi
     a1.plot(theta,freq,'x',color=plt.cm.viridis(.5),ms=10,mew=2)
     plt.show()
 
