@@ -228,7 +228,7 @@ class GaborFit(object):
         aps = aps/aps_norm
         freqs = fft.fftfreq(n_x)[:, np.newaxis] + 1j*fft.fftfreq(n_y)[np.newaxis, :]
 
-        thetas = np.linspace(0., np.pi/2, 8)
+        thetas = np.linspace(0., np.pi, 8)
         k_min = 2.*np.pi*min(1./n_x, 1./n_y)
         k_max = 2.*np.pi*.75
         ks = np.linspace(k_min, k_max, 20, endpoint=True)
