@@ -8,6 +8,8 @@ import matplotlib.patches as mpatches
 
 mpl.rcParams['xtick.labelsize'] = 10
 mpl.rcParams['ytick.labelsize'] = 10
+mpl.rcParams['axes.labelsize']  = 14
+mpl.rcParams['legend.fontsize'] = 10
 
 import utils
 reload(utils)
@@ -23,26 +25,32 @@ reload(ds)
 import gabor_fit as fit
 reload(fit)
 
-def plot_costs(mode=0,savePath=None):
+def plot_figure2cd(panel='c',savePath=None):
+    """Reproduces the panels c and d of figure 2 in the NIPS16 paper
+    Parameters:
+    ----------
+    panel: string, optional
+         Which panel, options: 'c', 'd' 
+    savePath: string, optional
+         figure_path+figure_name+.format to store the figure. 
+         If figure is stored, it is not displayed.   
+    """
     formatter=mpl.ticker.FormatStrFormatter('%.1f')
     fig = plt.figure('costs',figsize=(3,3))
     fig.clf()
     ax = plt.axes([.16,.15,.8,.81])
     costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
     col = np.linspace(0,1,len(costs))
-    if mode==0:
-#        xx = np.linspace(0,1,100)
-#        fun = [lambda x: x**2,lambda x:(1.1-x**2)**(-1/2.),lambda x:-np.log(1-x**2),lambda x:x**4]
+    if panel=='c':
         xx = np.linspace(.6,1.,100)
         fun = [lambda x: 2*x,lambda x: x/(1-x**2)**(3/2),lambda x: (2*x)/(1-x**2),lambda x: 4*x**3] 
         ax.set_yscale('log')
-    elif mode==1:
+    elif panel=='d':
         xx = np.linspace(-.17,.17,100)
         fun = [lambda x: 2*x,lambda x: x/(1-x**2)**(3/2),lambda x: (2*x)/(1-x**2),lambda x: 4*x**3] 
-#        fun = [lambda x: -2*x,lambda x:-x/(1-x**2)**(3/2),lambda x:-(2*x)/(1-x**2),lambda x:-4*x**3]
     for i in xrange(4):
         ax.plot(xx,fun[i](xx),color=cm.viridis(col[i]),lw=2,label=costs[i])
-    if mode==1:
+    if panel=='d':
         ax.spines['left'].set_position('zero')
         ax.spines['right'].set_color('none')
         ax.spines['bottom'].set_position('zero')
@@ -52,33 +60,47 @@ def plot_costs(mode=0,savePath=None):
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
     ax.set_xlim(np.min(xx),np.max(xx))
-    if mode==0:
-        ax.legend(loc='upper left', frameon=False,fontsize=10,ncol=1)
-        #ax.set_ylim(0,3)
-        #ax.set_xticks(np.arange(0,1.1,.25))
-        #ax.set_yticks(np.arange(0,3.1,1.))
+    if panel=='c':
+        ax.legend(loc='upper left',frameon=False,,ncol=1)
         ax.set_ylim(1e0,1e2)
         ax.set_xticks(np.arange(0.6,1.1,.2))
         ax.xaxis.set_major_formatter(formatter)
-        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',fontsize=12,labelpad=-4)#20)
-#        ax.set_ylabel(r'$C(\cos\,\theta)$',fontsize=12,labelpad=0)
-        ax.set_xlabel(r'$\cos\,\theta$',fontsize=12)
-    elif mode==1:
+        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=-4)#20)
+        ax.set_xlabel(r'$\cos\,\theta$')
+    elif panel=='d':
         ax.set_ylim(-.2,.2)
         ax.set_xticks(np.arange(-.15,.16,.15))
         ax.set_yticks(np.arange(-.2,.21,.1))
-        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',fontsize=12,labelpad=65)#20)
-        ax.set_xlabel(r'$\cos\,\theta$',fontsize=12,labelpad=80)#180)
+        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=65)#20)
+        ax.set_xlabel(r'$\cos\,\theta$',labelpad=80)#180)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
 
 def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
                         savePath=None,density=True):
+    """Plots angle distributions of different costs and initial conditions.  
+    Parameters:
+    ----------
+    W     : array
+           Set of basis obtained by optimizing different costs.
+           Dimension: n_costs X n_vectors X n_dims
+    W_0   : array
+           Initial set of basis.
+           Dimension: n_costs X n_vectors X n_dims
+    costs : list or array of strings
+           Names of the costs that were evaluated
+    cmap  : colormap object, optional
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    density: boolean, optional
+           Use the density
+    """
     col = np.linspace(0,1,W.shape[1])
     if W.shape[0]>1:
         figsize=(6,3)
     else:
-        figsize=(4,4)
+        figsize=(3,3)
     fig = plt.figure('angle distributions',figsize=figsize)
     columns = W.shape[0]
     rows = W.shape[1]
@@ -103,7 +125,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
             ax.plot(b0,h0,'--',drawstyle='steps-pre',color='r',lw=1)
             ax.set_yscale('log')
             ax.set_xlim(0,90) 
-            
+          
             if density:
                 ax.set_ylim(1e-4,1e0)
             else:
@@ -112,27 +134,27 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
             if W.shape[0]>1:
                 if j==0:
                     fig.text(.965,.9-.3*i,initial_conditions[i],
-                            rotation='vertical',fontsize=16)
+                            rotation='vertical')
                 if i==0:
-                    ax.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
+                    ax.legend(loc='upper left',frameon=False,ncol=1)
                 if i==2:
-                    ax.set_xlabel(r'$\theta$',fontsize=16)
+                    ax.set_xlabel(r'$\theta$')
                     if density:
-                        ax.set_ylabel('Density',fontsize=16)
+                        ax.set_ylabel('Density')
                     else:
-                        ax.set_ylabel('Counts',fontsize=16)
+                        ax.set_ylabel('Counts')
                 else:
                     ax.set_yticklabels([])
                     ax.set_xticklabels([])
                 ax.set_xticks([0,45,90])
 
             else:
-                ax.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
-                ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=-10)
+                ax.legend(loc='upper left',frameon=False,ncol=1)
+                ax.set_xlabel(r'$\theta$',labelpad=-10)
                 if density:
-                    ax.set_ylabel('Density',fontsize=16,labelpad=2)
+                    ax.set_ylabel('Density',labelpad=2)
                 else:
-                    ax.set_ylabel('Counts',fontsize=16)
+                    ax.set_ylabel('Counts')
                 ax.set_xlim(45,90)
                 ax.set_xticks([45,90])
   
@@ -156,6 +178,24 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
 
 def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
                             savePath=None,density=True):
+    """Plots angle distributions of different costs and initial conditions  
+    Parameters:
+    ----------
+    W     : array
+           Set of basis obtained by optimizing different costs.
+           Dimension: n_costs X n_vectors X n_dims
+    W_0   : array
+           Initial set of basis.
+           Dimension: n_costs X n_vectors X n_dims
+    costs : list or array of strings
+           Names of the costs that are evaluated
+    cmap  : colormap (plt.cm) object, optional
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    density: boolean, optional
+           Use the density
+    """
     col = np.linspace(0,1,W.shape[0])
     fig,(ax, ax2) = plt.subplots(1,2,sharey=True)
     fig.set_size_inches((4,4))
@@ -200,11 +240,11 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
         else:
             ax.set_ylim(1e0,1e4) 
 
-        ax.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
+        ax.legend(loc='upper left', frameon=False,ncol=1)
         if density:
-            ax.set_ylabel('Density',fontsize=16,labelpad=-2)
+            ax.set_ylabel('Density',labelpad=-2)
         else:
-            ax.set_ylabel('Counts',fontsize=16)
+            ax.set_ylabel('Counts')
         ax.set_xlim(0,11)
         ax.set_xticks([0,10])
 
@@ -239,13 +279,26 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
     fig.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
               wspace=0.05, hspace=0.05)
 
-    fig.text(.525,.0125,r'$\theta$',fontsize=16)
+    fig.text(.525,.0125,r'$\theta$',fontsize=14)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
         plt.show()
 
-def plot_figure2b(W=None,W_0=None):
+def plot_figure2b(W=None,W_0=None,savePath=None):
+    """Reproduces figure 2b of the NIPS16 paper.
+    Parameters:
+    ----------
+    W     : array, optional
+           Set of basis obtained by optimizing different costs.
+           Dimension: n_costs X n_vectors X n_dims
+    W_0   : array, optional
+           Initial set of basis. 
+           Dimension: n_costs X n_vectors X n_dims
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """
     overcompleteness = 2
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
@@ -256,9 +309,25 @@ def plot_figure2b(W=None,W_0=None):
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_broken_axis(W[1],W_0[1],costs,density=True)
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
+    else:
+        plt.show()
 
-
-def plot_figure2a(W=None,W_0=None):
+def plot_figure2a(W=None,W_0=None,savePath=None):
+    """Reproduces figure 2a of the NIPS16 paper
+    Parameters:
+    ----------
+    W     : array, optional
+           Set of basis obtained by optimizing different costs.
+           Dimension: n_costs X n_vectors X n_dims
+    W_0   : array, optional
+           Initial set of basis.
+           Dimension: n_costs X n_vectors X n_dims
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """
     overcompleteness = 2
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
@@ -269,24 +338,35 @@ def plot_figure2a(W=None,W_0=None):
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_1column(W[0][np.newaxis,...],W_0,costs,density=True)
+    if savePath is not None:
+        plt.savefig(savePath,dpi=300)
+    else:
+        plt.show()
 
-
-def plot_figure2c():
-    plot_costs()
-
-def plot_figure2d():
-    plot_costs(mode=1)
-
-
-def plot_filters(filters,n_pixels=8,n_filters=16,\
-                 savePath=None,ax=None,figname='filters'):
+def plot_bases(bases,savePath=None,ax=None,figname='bases'):
+    """PLots a set of  bases. (Reproduces figure 3b of the NIPS16 paper.)
+    Parameters:
+    ----------
+    bases : array
+           Set of basis.
+           Dimension: n_costs X n_vectors X n_dims
+    ax    : Axes object, optional
+           If None, the funtion generates a new Axes object.
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    figname: string, optional
+           Name of the figure
+    """
+    n_pixels = np.sqrt(bases.shape[1])
+    n_bases  = np.sqrt(bases.shape[0])
     if ax is None:
         fig = plt.figure(figname)
         fig.clf()
         ax = plt.axes()
-    im = tri(filters,(n_pixels,n_pixels),(n_filters,n_filters),
-                       (2,2), scale_rows_to_unit_interval=False,
-                       output_pixel_vals=False)
+    im = tri(bases,(n_pixels,n_pixels),(n_bases,n_bases),
+                (2,2), scale_rows_to_unit_interval=False,
+                output_pixel_vals=False)
     ax.imshow(im,aspect='auto',interpolation='nearest',cmap='gray')
     ax.set_axis_off()
     if savePath is not None:
@@ -296,16 +376,19 @@ def plot_filters(filters,n_pixels=8,n_filters=16,\
 
 def plot_figure3a(angles,labels,density=True,\
                    savePath=None,ax=None):
-    """
-    Plots angle histograms
-    
+    """Reproduces figure 3a of the NIPS16 paper
     Parameters:
-    -----------
-    
+    ----------
     angles: array
-            dimensions: n_sparsity_values x n_angles
-    sparsity:  array
-            sparsity values
+           Final set of angles obtained by training different ICA models on natural images.
+           Dimension: n_costs X n_angles
+    ax    : Axes object, optional
+           If None, the funtion generates a new Axes object.
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    figname: string, optional
+           Name of the figure
     """
     if ax is None:
         fig = plt.figure('angle_hist',figsize=(4,4))
@@ -355,7 +438,7 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
     #figure3b
     ax_bases = plt.axes([.55,.15,.4,.8])
     w = bases[-1]
-    plot_filters(w.dot(K),ax=ax_bases)
+    plot_bases(w.dot(K),ax=ax_bases)
     fig.text(.01,.9,'a)',fontsize=14)
     fig.text(.5,.9,'b)',fontsize=14)
     if savePath is not None:
@@ -451,6 +534,3 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None):
         plt.savefig(savePath,dpi=300)
     else:
         plt.show()
-
-
-
