@@ -146,8 +146,8 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
         return out_array
 
 
-def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(30, 0.2),
-                          thlabel='theta', rlabel='r', ticklabels=True):
+def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .5),
+                          thlabel=r'$\theta$', rlabel='frequency', ticklabels=True):
     """Return polar axes that adhere to desired theta (in deg) and r limits. steps for theta
     and r are really just hints for the locators. Using negative values for rlim causes
     problems for GridHelperCurveLinear for some reason"""
