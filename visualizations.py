@@ -96,7 +96,8 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
     density: boolean, optional
            Use the density
     """
-    col = np.linspace(0,1,W.shape[1])
+    col = np.linspace(0,1,W.shape[1]-1)
+    col = np.hstack((np.zeros(1),col))
     if W.shape[0]>1:
         figsize=(6,3)
     else:
@@ -114,7 +115,11 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
             if density:
                 h = h*1./np.sum(h)
             b = np.arange(1,91)
-            ax.plot(b,h,drawstyle='steps-pre',color=cmap(col[j]),
+            if j==0:
+                ax.plot(b,h,drawstyle='steps-pre',color='k',
+                    lw=1.5,label=costs[j])
+            else:
+                ax.plot(b,h,drawstyle='steps-pre',color=cmap(col[j]),
                     lw=1.5,label=costs[j])
 
             angles0 = dgcs.compute_angles(W_0[i])
@@ -177,7 +182,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
         plt.show()
 
 def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
-                            savePath=None,density=True):
+                            savePath=None,density=True,with_legend=True):
     """Plots angle distributions of different costs and initial conditions  
     Parameters:
     ----------
@@ -195,10 +200,14 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
            If figure is stored, it is not displayed.   
     density: boolean, optional
            Use the density
+    with_legend: boolean, optional
+           Add a legend to the plot 
     """
-    col = np.linspace(0,1,W.shape[0])
+    col = np.linspace(0,1,W.shape[0]-1)
+    col = np.hstack((np.zeros(1),col))
+
     fig,(ax, ax2) = plt.subplots(1,2,sharey=True)
-    fig.set_size_inches((4,4))
+    fig.set_size_inches((3,3))
 
     for j in xrange(W.shape[0]):
         angles = dgcs.compute_angles(W[j])
@@ -207,10 +216,17 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
             h = h*1./np.sum(h)
         n= 45
         b = np.arange(1,91)
-        ax.plot(b[:n],h[:n],drawstyle='steps-pre',
+        if j==0:
+	    ax.plot(b[:n],h[:n],drawstyle='steps-pre',
+                color='k',lw=1.5,label=costs[j])
+        
+            ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
+                color='k',lw=1.5,label=costs[j])
+        else:
+            ax.plot(b[:n],h[:n],drawstyle='steps-pre',
                 color=cmap(col[j]),lw=1.5,label=costs[j])
         
-        ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
+            ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
                 color=cmap(col[j]),lw=1.5,label=costs[j])
 
         angles0 = dgcs.compute_angles(W_0)
@@ -239,8 +255,8 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
             ax.set_ylim(1e-4,1e0)
         else:
             ax.set_ylim(1e0,1e4) 
-
-        ax.legend(loc='upper left', frameon=False,ncol=1)
+        if with_legend:
+            ax.legend(loc='upper left', frameon=False,ncol=1)
         if density:
             ax.set_ylabel('Density',labelpad=-2)
         else:
@@ -308,7 +324,7 @@ def plot_figure2b(W=None,W_0=None,savePath=None):
         W, W_0 = dgcs.evaluate_dgcs(initial_conditions, degeneracy_controls,
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
-    plot_angles_broken_axis(W[1],W_0[1],costs,density=True)
+    plot_angles_broken_axis(W[1],W_0[1],costs,density=True,with_legend=False)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
