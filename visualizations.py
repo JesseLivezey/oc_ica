@@ -255,12 +255,15 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
             ax.set_ylim(1e-4,1e0)
         else:
             ax.set_ylim(1e0,1e4) 
+
         if with_legend:
             ax.legend(loc='upper left', frameon=False,ncol=1)
+
         if density:
             ax.set_ylabel('Density',labelpad=-2)
         else:
             ax.set_ylabel('Counts')
+
         ax.set_xlim(0,11)
         ax.set_xticks([0,10])
 
@@ -271,7 +274,6 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
 
         ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
-        #ax2.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
         ax2.set_xlim(80,90)
         ax2.set_xticks([81,90])
      
@@ -374,8 +376,8 @@ def plot_bases(bases,savePath=None,ax=None,figname='bases'):
     figname: string, optional
            Name of the figure
     """
-    n_pixels = np.sqrt(bases.shape[1])
-    n_bases  = np.sqrt(bases.shape[0])
+    n_pixels = int(np.sqrt(bases.shape[1]))
+    n_bases  = int(np.sqrt(bases.shape[0]))
     if ax is None:
         fig = plt.figure(figname)
         fig.clf()
@@ -455,7 +457,7 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
         X, K = ds.generate_data(demo=1)[1:3]
         bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
     #compute the angles
-    n_sources = bases.shape[0]
+    n_sources = bases.shape[1]
     angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
     for i in xrange(len(costs)):
         angles[i] = dgcs.compute_angles(bases[i])
@@ -493,7 +495,7 @@ def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     bases = np.zeros((len(costs),n_sources,n_mixtures))
     for i in xrange(len(costs)):
         ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
-                        degeneracy=costs[i],optimizer='sgd',learning_rule=adam)
+                        degeneracy=costs[i],optimizer='L-BFGS-B')
         ica.fit(X)
         bases[i] = ica.components_
     return bases
