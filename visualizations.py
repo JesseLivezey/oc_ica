@@ -61,7 +61,7 @@ def plot_figure2cd(panel='c',savePath=None):
     ax.yaxis.set_ticks_position('left')
     ax.set_xlim(np.min(xx),np.max(xx))
     if panel=='c':
-        ax.legend(loc='upper left',frameon=False,,ncol=1)
+        ax.legend(loc='upper left',frameon=False,ncol=1)
         ax.set_ylim(1e0,1e2)
         ax.set_xticks(np.arange(0.6,1.1,.2))
         ax.xaxis.set_major_formatter(formatter)
@@ -152,7 +152,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
                 ax.legend(loc='upper left',frameon=False,ncol=1)
                 ax.set_xlabel(r'$\theta$',labelpad=-10)
                 if density:
-                    ax.set_ylabel('Density',labelpad=2)
+                    ax.set_ylabel('Density',labelpad=-2)
                 else:
                     ax.set_ylabel('Counts')
                 ax.set_xlim(45,90)
@@ -417,7 +417,7 @@ def plot_figure3a(angles,labels,density=True,\
     else:
         plt.show()
 
-def plot_figure3(bases=None,oc=4,lambd=10.,savePath=Nonei):
+def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
     """Reproduces figure 3 of the NIPS16 paper
     Parameters:
     ----------
@@ -500,9 +500,9 @@ def get_Gabor_params(bases):
 
 def plot_GaborFit_xy(params,color=.5,savePath=None):
     """Plot Gabor parameters using a "confetti plot": 
-       - position of Rectangle:  position of Gabor
+       - position of rectangle:  position of Gabor
        - width,height of rectangle:  variance of envelope 
-       - angle of the Rectangle: orientation of the Gabor
+       - angle of the rectangle: orientation of the Gabor
     Parameters:
     ----------
     params : list of arrays 
