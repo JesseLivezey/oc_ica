@@ -32,11 +32,22 @@ class ICA(BaseEstimator, TransformerMixin):
         p for 'Lp' norm degeneracy control.
     rng : numpy.RandomState
         Randomstate for initialization.
+    a : int
+        Inverse power for Coulomb cost.
+    optimizer : str
+        Type of optimizer. 'L_BFGS-B' or 'sgd'.
+    learning_rule : str
+        Type of learning rule for sgd.
+    fit_kwargs : str
+        kwargs for optimizer.
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-2,
                  w_init=None, degeneracy=None, p=None, rng=None,
                  a=None, optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
+
+        if learning_rule is not None:
+            assert optimzer == 'sgd'
 
         if rng is None:
             seed = np.random.randint(100000)
@@ -75,6 +86,9 @@ class ICA(BaseEstimator, TransformerMixin):
             raise ValueError
 
     def _normalize_components(self):
+        """
+        Normalize components_ to unit norm.
+        """
         self.components_ = self.components_/np.linalg.norm(self.components_, axis=-1, keepdims=True)
 
     def fit(self, X, y=None):
