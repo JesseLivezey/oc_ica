@@ -420,15 +420,15 @@ def plot_figure3a(angles,labels,density=True,\
         ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i])
     ax.set_yscale('log')
     if not density:
-        ax.set_ylabel('Counts',fontsize=16)
+        ax.set_ylabel('Counts')
         ax.set_yticks([1e0,1e2,1e4])
     else:
-        ax.set_ylabel('Density',fontsize=16,labelpad=-10)
+        ax.set_ylabel('Density',labelpad=-10)
         ax.set_yticks([1e-5,1e0])
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlim(20,90)
-    ax.legend(loc='best', frameon=False,fontsize=12,ncol=1)
-    ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=0)
+    ax.legend(loc='best', frameon=False,ncol=1)
+    ax.set_xlabel(r'$\theta$',labelpad=0)
     ax.set_xticks([20,55,90])
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
@@ -621,8 +621,8 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None):
                                    alpha=.8))
     ax.set_xlim(.0,.2)
     ax.set_ylim(.0,.2)
-    ax.set_xlabel(r'var[$\parallel$]',fontsize=14)
-    ax.set_ylabel(r'var[$\perp$]',fontsize=14)
+    ax.set_xlabel(r'var[$\parallel$]')
+    ax.set_ylabel(r'var[$\perp$]')
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:

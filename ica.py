@@ -47,7 +47,7 @@ class ICA(BaseEstimator, TransformerMixin):
                  **fit_kwargs):
 
         if learning_rule is not None:
-            assert optimzer == 'sgd'
+            assert optimizer == 'sgd'
 
         if rng is None:
             seed = np.random.randint(100000)
