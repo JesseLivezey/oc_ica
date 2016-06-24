@@ -380,7 +380,7 @@ def plot_figure3a(angles,labels,density=True,\
     Parameters:
     ----------
     angles: array
-           Final set of angles obtained by training different ICA models on natural images.
+           Set of angles obtained by training different ICA models on natural images.
            Dimension: n_costs X n_angles
     ax    : Axes object, optional
            If None, the funtion generates a new Axes object.
@@ -417,8 +417,23 @@ def plot_figure3a(angles,labels,density=True,\
     else:
         plt.show()
 
-def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
-                 costs = ['L2','COULOMB','RANDOM','L4']):
+def plot_figure3(bases=None,oc=4,lambd=10.,savePath=Nonei):
+    """Reproduces figure 3 of the NIPS16 paper
+    Parameters:
+    ----------
+    bases: array
+           Set of ICA bases. Dimension: n_costs X n_sources X n_mixtures
+    oc    : int, optional
+           Overcompleteness 
+    lambd : float, optional
+           Sparsity
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    figname: string, optional
+           Name of the figure
+    """
+    costs = ['L2','COULOMB','RANDOM','L4']
     #if not given, compute bases
     if bases is None:
         X, K = ds.generate_data(demo=1)[1:3]
@@ -447,6 +462,16 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
         plt.show()
 
 def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
+    """Learn ICA bases for a given set of non-degeneracy costsi
+    Parameters:
+    ----------
+    X     : array
+           Whiten data. Dimension: n_samples X n_features
+    oc    : int, optional
+           Overcompleteness 
+    lambd : float, optional
+           Sparsity
+    """
     n_mixtures = X.shape[0]
     n_sources  = n_mixtures*oc
     bases = np.zeros((len(costs),n_sources,n_mixtures))
@@ -458,6 +483,10 @@ def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     return bases
 
 def get_Gabor_params(bases):
+    """Fit Gabor funcions to a set of basis
+    bases: array
+           ICA bases. Dimension: n_costs X n_sources X n_mixtures
+    """
     if len(bases.shape)==2:
 	bases = bases[np.newaxis,...]
     params = []
@@ -470,20 +499,36 @@ def get_Gabor_params(bases):
     return params
 
 def plot_GaborFit_xy(params,color=.5,savePath=None):
+    """Plot Gabor parameters using a "confetti plot": 
+       - position of Rectangle:  position of Gabor
+       - width,height of rectangle:  variance of envelope 
+       - angle of the Rectangle: orientation of the Gabor
+    Parameters:
+    ----------
+    params : list of arrays 
+           Gabor parameters :x, y, orientation, phase, 
+                frequency, varx, vary 
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """ 
     color = plt.cm.viridis(color)
     fig = plt.figure('xy',figsize=(2,2))
     fig.clf()
     ax = plt.axes([.15,.15,.8,.8])
-    freq = params[1][4]
-    indices = np.arange(len(freq))#np.where(freq>1)[0]
-    max_vx = np.max(params[1][5])*5
-    max_vy = np.max(params[1][6])*5
+    freq = params[4]
+    indices = np.where(freq>1)[0]
+    max_vx = np.max(params[5])*5
+    max_vy = np.max(params[6])*5
     for i in indices:
-        x = params[1][0][i]
-        y = params[1][1][i]
-        theta = params[1][2][i]/np.pi*180
-        varx  = params[1][5][i]/max_vx
-        vary  = params[1][6][i]/max_vy
+        x = params[0][i]
+        y = params[1][i]
+        theta = params[2][i]/np.pi*180
+        varx  = params[5][i]/max_vx
+        vary  = params[6][i]/max_vy
         ax.add_patch(plt.Rectangle((x,y),width=varx,
                                    height=vary,angle=theta,
                                    facecolor=color,edgecolor=color,
@@ -498,12 +543,27 @@ def plot_GaborFit_xy(params,color=.5,savePath=None):
         plt.show()
 
 def plot_GaborFit_polar(params,color=.5,savePath=None):
+    """Plot Gabor parameters using a polar plot: 
+       - radius: frequency 
+       - angle : orientation of the Gabor
+    Parameters:
+    ----------
+    params : list of arrays 
+           Gabor parameters :x, y, orientation, phase, 
+                frequency, varx, vary 
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """ 
     color = plt.cm.viridis(color)
     fig = plt.figure('polar',figsize=(2,2))
     fig.clf()
     ax = polar(fig)
-    freq = params[1][4]/np.max(params[1][4])
-    theta = params[1][2]/np.pi*180
+    freq = params[4]/np.max(params[4])
+    theta = params[2]/np.pi*180
     ax.plot(theta,freq,'.',color=color,ms=5,mew=1)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
@@ -511,14 +571,30 @@ def plot_GaborFit_polar(params,color=.5,savePath=None):
         plt.show()
 
 def plot_GaborFit_envelope(params,color=.5,savePath=None):
+    """Plot Gabor parameters using a scatter plot: 
+       - position of circles: size of the evelope (varx,vary) 
+       - size of the circle : frequency of the cosine function
+    Parameters:
+    ----------
+    params : list of arrays 
+           Gabor parameters :x, y, orientation, phase, 
+                frequency, varx, vary 
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """ 
     color = plt.cm.viridis(color)
     fig = plt.figure('polar',figsize=(2,2))
     fig.clf()
     ax = plt.axes([.15,.15,.8,.8])
     max_vx = np.max(params[1][5])*5
     max_vy = np.max(params[1][6])*5
-    freq = params[1][4]/np.max(params[1][4])/200.
-    indices = np.arange(len(freq))#np.where(freq>1)[0]
+    freq = params[1][4]
+    indices = np.where(freq>1)[0]
+    freq /= np.max(freq)/200.
     for i in indices:
         varx  = params[1][5][i]/max_vx
         vary  = params[1][6][i]/max_vy
@@ -529,7 +605,6 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None):
     ax.set_ylim(.0,.2)
     ax.set_xlabel(r'var[$\parallel$]',fontsize=14)
     ax.set_ylabel(r'var[$\perp$]',fontsize=14)
-   
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
