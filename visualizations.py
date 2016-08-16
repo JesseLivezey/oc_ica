@@ -61,7 +61,7 @@ def plot_figure2cd(panel='c',savePath=None):
     ax.yaxis.set_ticks_position('left')
     ax.set_xlim(np.min(xx),np.max(xx))
     if panel=='c':
-        ax.legend(loc='upper left',frameon=False,,ncol=1)
+        ax.legend(loc='upper left',frameon=False,ncol=1)
         ax.set_ylim(1e0,1e2)
         ax.set_xticks(np.arange(0.6,1.1,.2))
         ax.xaxis.set_major_formatter(formatter)
@@ -96,7 +96,8 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
     density: boolean, optional
            Use the density
     """
-    col = np.linspace(0,1,W.shape[1])
+    col = np.linspace(0,1,W.shape[1]-1)
+    col = np.hstack((np.zeros(1),col))
     if W.shape[0]>1:
         figsize=(6,3)
     else:
@@ -114,7 +115,11 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
             if density:
                 h = h*1./np.sum(h)
             b = np.arange(1,91)
-            ax.plot(b,h,drawstyle='steps-pre',color=cmap(col[j]),
+            if j==0:
+                ax.plot(b,h,drawstyle='steps-pre',color='k',
+                    lw=1.5,label=costs[j])
+            else:
+                ax.plot(b,h,drawstyle='steps-pre',color=cmap(col[j]),
                     lw=1.5,label=costs[j])
 
             angles0 = dgcs.compute_angles(W_0[i])
@@ -152,7 +157,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
                 ax.legend(loc='upper left',frameon=False,ncol=1)
                 ax.set_xlabel(r'$\theta$',labelpad=-10)
                 if density:
-                    ax.set_ylabel('Density',labelpad=2)
+                    ax.set_ylabel('Density',labelpad=-2)
                 else:
                     ax.set_ylabel('Counts')
                 ax.set_xlim(45,90)
@@ -177,7 +182,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
         plt.show()
 
 def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
-                            savePath=None,density=True):
+                            savePath=None,density=True,with_legend=True):
     """Plots angle distributions of different costs and initial conditions  
     Parameters:
     ----------
@@ -195,10 +200,14 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
            If figure is stored, it is not displayed.   
     density: boolean, optional
            Use the density
+    with_legend: boolean, optional
+           Add a legend to the plot 
     """
-    col = np.linspace(0,1,W.shape[0])
+    col = np.linspace(0,1,W.shape[0]-1)
+    col = np.hstack((np.zeros(1),col))
+
     fig,(ax, ax2) = plt.subplots(1,2,sharey=True)
-    fig.set_size_inches((4,4))
+    fig.set_size_inches((3,3))
 
     for j in xrange(W.shape[0]):
         angles = dgcs.compute_angles(W[j])
@@ -207,10 +216,17 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
             h = h*1./np.sum(h)
         n= 45
         b = np.arange(1,91)
-        ax.plot(b[:n],h[:n],drawstyle='steps-pre',
+        if j==0:
+	    ax.plot(b[:n],h[:n],drawstyle='steps-pre',
+                color='k',lw=1.5,label=costs[j])
+        
+            ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
+                color='k',lw=1.5,label=costs[j])
+        else:
+            ax.plot(b[:n],h[:n],drawstyle='steps-pre',
                 color=cmap(col[j]),lw=1.5,label=costs[j])
         
-        ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
+            ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
                 color=cmap(col[j]),lw=1.5,label=costs[j])
 
         angles0 = dgcs.compute_angles(W_0)
@@ -240,11 +256,14 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
         else:
             ax.set_ylim(1e0,1e4) 
 
-        ax.legend(loc='upper left', frameon=False,ncol=1)
+        if with_legend:
+            ax.legend(loc='upper left', frameon=False,ncol=1)
+
         if density:
             ax.set_ylabel('Density',labelpad=-2)
         else:
             ax.set_ylabel('Counts')
+
         ax.set_xlim(0,11)
         ax.set_xticks([0,10])
 
@@ -255,7 +274,6 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
 
         ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
-        #ax2.legend(loc='upper left', frameon=False,fontsize=12,ncol=1)
         ax2.set_xlim(80,90)
         ax2.set_xticks([81,90])
      
@@ -308,7 +326,7 @@ def plot_figure2b(W=None,W_0=None,savePath=None):
         W, W_0 = dgcs.evaluate_dgcs(initial_conditions, degeneracy_controls,
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
-    plot_angles_broken_axis(W[1],W_0[1],costs,density=True)
+    plot_angles_broken_axis(W[1],W_0[1],costs,density=True,with_legend=False)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
@@ -358,8 +376,8 @@ def plot_bases(bases,savePath=None,ax=None,figname='bases'):
     figname: string, optional
            Name of the figure
     """
-    n_pixels = np.sqrt(bases.shape[1])
-    n_bases  = np.sqrt(bases.shape[0])
+    n_pixels = int(np.sqrt(bases.shape[1]))
+    n_bases  = int(np.sqrt(bases.shape[0]))
     if ax is None:
         fig = plt.figure(figname)
         fig.clf()
@@ -380,7 +398,7 @@ def plot_figure3a(angles,labels,density=True,\
     Parameters:
     ----------
     angles: array
-           Final set of angles obtained by training different ICA models on natural images.
+           Set of angles obtained by training different ICA models on natural images.
            Dimension: n_costs X n_angles
     ax    : Axes object, optional
            If None, the funtion generates a new Axes object.
@@ -402,29 +420,44 @@ def plot_figure3a(angles,labels,density=True,\
         ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i])
     ax.set_yscale('log')
     if not density:
-        ax.set_ylabel('Counts',fontsize=16)
+        ax.set_ylabel('Counts')
         ax.set_yticks([1e0,1e2,1e4])
     else:
-        ax.set_ylabel('Density',fontsize=16,labelpad=-10)
+        ax.set_ylabel('Density',labelpad=-10)
         ax.set_yticks([1e-5,1e0])
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlim(20,90)
-    ax.legend(loc='best', frameon=False,fontsize=12,ncol=1)
-    ax.set_xlabel(r'$\theta$',fontsize=16,labelpad=0)
+    ax.legend(loc='best', frameon=False,ncol=1)
+    ax.set_xlabel(r'$\theta$',labelpad=0)
     ax.set_xticks([20,55,90])
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
         plt.show()
 
-def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
-                 costs = ['L2','COULOMB','RANDOM','L4']):
+def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
+    """Reproduces figure 3 of the NIPS16 paper
+    Parameters:
+    ----------
+    bases: array
+           Set of ICA bases. Dimension: n_costs X n_sources X n_mixtures
+    oc    : int, optional
+           Overcompleteness 
+    lambd : float, optional
+           Sparsity
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    figname: string, optional
+           Name of the figure
+    """
+    costs = ['L2','COULOMB','RANDOM','L4']
     #if not given, compute bases
     if bases is None:
         X, K = ds.generate_data(demo=1)[1:3]
         bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
     #compute the angles
-    n_sources = bases.shape[0]
+    n_sources = bases.shape[1]
     angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
     for i in xrange(len(costs)):
         angles[i] = dgcs.compute_angles(bases[i])
@@ -447,17 +480,31 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None,
         plt.show()
 
 def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
+    """Learn ICA bases for a given set of non-degeneracy costsi
+    Parameters:
+    ----------
+    X     : array
+           Whiten data. Dimension: n_samples X n_features
+    oc    : int, optional
+           Overcompleteness 
+    lambd : float, optional
+           Sparsity
+    """
     n_mixtures = X.shape[0]
     n_sources  = n_mixtures*oc
     bases = np.zeros((len(costs),n_sources,n_mixtures))
     for i in xrange(len(costs)):
         ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
-                        degeneracy=costs[i],optimizer='sgd',learning_rule=adam)
+                        degeneracy=costs[i],optimizer='L-BFGS-B')
         ica.fit(X)
         bases[i] = ica.components_
     return bases
 
 def get_Gabor_params(bases):
+    """Fit Gabor funcions to a set of basis
+    bases: array
+           ICA bases. Dimension: n_costs X n_sources X n_mixtures
+    """
     if len(bases.shape)==2:
 	bases = bases[np.newaxis,...]
     params = []
@@ -470,20 +517,36 @@ def get_Gabor_params(bases):
     return params
 
 def plot_GaborFit_xy(params,color=.5,savePath=None):
+    """Plot Gabor parameters using a "confetti plot": 
+       - position of rectangle:  position of Gabor
+       - width,height of rectangle:  variance of envelope 
+       - angle of the rectangle: orientation of the Gabor
+    Parameters:
+    ----------
+    params : list of arrays 
+           Gabor parameters :x, y, orientation, phase, 
+                frequency, varx, vary 
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """ 
     color = plt.cm.viridis(color)
     fig = plt.figure('xy',figsize=(2,2))
     fig.clf()
     ax = plt.axes([.15,.15,.8,.8])
-    freq = params[1][4]
-    indices = np.arange(len(freq))#np.where(freq>1)[0]
-    max_vx = np.max(params[1][5])*5
-    max_vy = np.max(params[1][6])*5
+    freq = params[4]
+    indices = np.where(freq>1)[0]
+    max_vx = np.max(params[5])*5
+    max_vy = np.max(params[6])*5
     for i in indices:
-        x = params[1][0][i]
-        y = params[1][1][i]
-        theta = params[1][2][i]/np.pi*180
-        varx  = params[1][5][i]/max_vx
-        vary  = params[1][6][i]/max_vy
+        x = params[0][i]
+        y = params[1][i]
+        theta = params[2][i]/np.pi*180
+        varx  = params[5][i]/max_vx
+        vary  = params[6][i]/max_vy
         ax.add_patch(plt.Rectangle((x,y),width=varx,
                                    height=vary,angle=theta,
                                    facecolor=color,edgecolor=color,
@@ -498,12 +561,27 @@ def plot_GaborFit_xy(params,color=.5,savePath=None):
         plt.show()
 
 def plot_GaborFit_polar(params,color=.5,savePath=None):
+    """Plot Gabor parameters using a polar plot: 
+       - radius: frequency 
+       - angle : orientation of the Gabor
+    Parameters:
+    ----------
+    params : list of arrays 
+           Gabor parameters :x, y, orientation, phase, 
+                frequency, varx, vary 
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """ 
     color = plt.cm.viridis(color)
     fig = plt.figure('polar',figsize=(2,2))
     fig.clf()
     ax = polar(fig)
-    freq = params[1][4]/np.max(params[1][4])
-    theta = params[1][2]/np.pi*180
+    freq = params[4]/np.max(params[4])
+    theta = params[2]/np.pi*180
     ax.plot(theta,freq,'.',color=color,ms=5,mew=1)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
@@ -511,14 +589,30 @@ def plot_GaborFit_polar(params,color=.5,savePath=None):
         plt.show()
 
 def plot_GaborFit_envelope(params,color=.5,savePath=None):
+    """Plot Gabor parameters using a scatter plot: 
+       - position of circles: size of the evelope (varx,vary) 
+       - size of the circle : frequency of the cosine function
+    Parameters:
+    ----------
+    params : list of arrays 
+           Gabor parameters :x, y, orientation, phase, 
+                frequency, varx, vary 
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    savePath: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """ 
     color = plt.cm.viridis(color)
     fig = plt.figure('polar',figsize=(2,2))
     fig.clf()
     ax = plt.axes([.15,.15,.8,.8])
     max_vx = np.max(params[1][5])*5
     max_vy = np.max(params[1][6])*5
-    freq = params[1][4]/np.max(params[1][4])/200.
-    indices = np.arange(len(freq))#np.where(freq>1)[0]
+    freq = params[1][4]
+    indices = np.where(freq>1)[0]
+    freq /= np.max(freq)/200.
     for i in indices:
         varx  = params[1][5][i]/max_vx
         vary  = params[1][6][i]/max_vy
@@ -527,9 +621,8 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None):
                                    alpha=.8))
     ax.set_xlim(.0,.2)
     ax.set_ylim(.0,.2)
-    ax.set_xlabel(r'var[$\parallel$]',fontsize=14)
-    ax.set_ylabel(r'var[$\perp$]',fontsize=14)
-   
+    ax.set_xlabel(r'var[$\parallel$]')
+    ax.set_ylabel(r'var[$\perp$]')
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
