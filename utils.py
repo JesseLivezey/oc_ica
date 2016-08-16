@@ -210,4 +210,3 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .5),
         auxa.add_artist(plt.Circle([0, 0], radius=r, ls=ls, lw=lw, color=color, fill=False,
                         transform=auxa.transData._b, zorder=-1))
     return auxa
-
