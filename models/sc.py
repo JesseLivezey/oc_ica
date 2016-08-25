@@ -42,9 +42,11 @@ class SparseCoding(BaseEstimator, TransformerMixin):
         kwargs for optimizer.
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-4,
-                 w_init=None, degeneracy=None, p=None, rng=None,
+                 w_init=None, degeneracy=None, p=None, prior='soft',rng=None,
                  a=None, optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
+
+        assert prior in ['soft', 'hard']
 
         if learning_rule is not None:
             assert optimizer == 'sgd'
@@ -73,8 +75,12 @@ class SparseCoding(BaseEstimator, TransformerMixin):
         self.n_sources = n_sources
         self.components_ = w_0
         if optimizer == 'L-BFGS-B':
-            self.optimizer = sc_optimizers.SC_Optimizer(n_sources=n_sources, n_mixtures=n_mixtures,
-                                                        lambd=lambd)
+            if prior == 'hard':
+                self.optimizer = sc_optimizers.SC_Hard(n_sources=n_sources, n_mixtures=n_mixtures,
+                                                       lambd=lambd)
+            else:
+                self.optimizer = sc_optimizers.SC_Soft(n_sources=n_sources, n_mixtures=n_mixtures,
+                                                       lambd=lambd)
         else:
             raise ValueError
 
