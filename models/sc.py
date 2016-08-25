@@ -6,7 +6,7 @@ from scipy.optimize import minimize
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
-import from optimizers import sc_optimizers
+from optimizers import sc_optimizers
 reload(sc_optimizers)
 
 __authors__ = "Jesse Livezey, Alex Bujan"

@@ -1,11 +1,12 @@
 from __future__ import division
 import numpy as np
+import scipy as sp
 from collections import OrderedDict
 from scipy.optimize import minimize
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
-from .optimizer import Optimizer
+from .optimizers import Optimizer
 
 __authors__ = "Jesse Livezey, Alex Bujan"
 
@@ -15,11 +16,9 @@ class SC_Optimizer(Optimizer):
     Optimizer.
     """
     def __init__(self, lambd, **fit_kwargs):
-        self.fit_kwargs = fit_kwargs
-        self.setup(**fit_kwargs)
-        self.setup_transforms(**fit_kwargs)
         self.L = theano.shared(np.array(1.).astype('float32'))
         self.lambd = lambd
+        super(SC_Optimizer, self).__init__(**fit_kwargs)
 
     def fit(self, data, components_):
         """
@@ -39,7 +38,7 @@ class SC_Optimizer(Optimizer):
         print('Final loss value: {}'.format(l))
         return w_f.reshape(components_.shape)
 
-    def f_df(w):
+    def f_df(self, w):
         self.reset_L(w.reshape(self.components_shape))
         return [r.astype('float64') for r in self.f_df_f(w.astype('float32'))]
 
@@ -47,7 +46,7 @@ class SC_Optimizer(Optimizer):
         W = components_
         gram = W.dot(W.T)
         n = gram.shape[0]-1
-        L = 2. * scipy.linang.eigh(gram, eigvals_only=True, eigvals=(n, n))
+        L = 2. * sp.linalg.eigh(gram, eigvals_only=True, eigvals=(n, n))[0]
         self.L.set_value(np.array(L).astype('float32'))
 
     def setup(self, n_sources, n_mixtures):
@@ -63,7 +62,7 @@ class SC_Optimizer(Optimizer):
         Wn = W / W_norm
 
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X)
-        loss_grad = T.grad(loss, Wv)
+        loss_grad = T.grad(loss, Wv, consider_constant=[S])
 
         X_normed = X/T.sqrt((X**2).sum(axis=0, keepdims=True))
         X_hat_normed = X_hat/T.sqrt((X_hat**2).sum(axis=0, keepdims=True))
@@ -88,8 +87,8 @@ class SC_Optimizer(Optimizer):
         n_batch = X.shape[1]
         n_neurons = W.shape[0]
 
-        S_init = T.zeros((n_batch, n_neurons))
-        S_init2 = T.zeros((n_batch, n_neurons))
+        S_init = T.zeros((n_neurons, n_batch))
+        S_init2 = T.zeros((n_neurons, n_batch))
         t = T.ones(1)
         eps = self.lambd/self.L
 
