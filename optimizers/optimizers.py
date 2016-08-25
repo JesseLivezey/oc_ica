@@ -60,7 +60,9 @@ class Optimizer(object):
     """
     Optimizer.
     """
-    def __init__(self, **fit_kwargs):
+    def __init__(self, prior='soft', **fit_kwargs):
+        assert prior in ['soft', 'hard']
+        self.prior = prior
         self.fit_kwargs = fit_kwargs
         self.setup(**fit_kwargs)
         self.setup_transforms(**fit_kwargs)
@@ -150,11 +152,17 @@ class Optimizer(object):
             loss = error
 
         if np.isinf(lambd) or degeneracy is None:
-            penalty = T.log(T.cosh(S)).sum(axis=0).mean()
+            if self.prior == 'soft':
+                penalty = T.log(T.cosh(S)).sum(axis=0).mean()
+            else:
+                penalty = abs(S).sum(axis=0).mean()
             loss = penalty
         elif lambd > 0.:
-            penalty = T.log(T.cosh(S)).sum(axis=0).mean()
-            loss += lambd * penalty
+            if self.prior == 'soft':
+                penalty = T.log(T.cosh(S)).sum(axis=0).mean()
+            else:
+                penalty = abs(S).sum(axis=0).mean()
+            loss = loss + lambd * penalty
         else:
             penalty = None
 

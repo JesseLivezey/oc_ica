@@ -30,6 +30,8 @@ class ICA(BaseEstimator, TransformerMixin):
         Type of degeneracy control to use.
     p : int
         p for 'Lp' norm degeneracy control.
+    prior : str
+        'soft' (soft L1) or 'hard' (L1)
     rng : numpy.RandomState
         Randomstate for initialization.
     a : int
@@ -42,7 +44,7 @@ class ICA(BaseEstimator, TransformerMixin):
         kwargs for optimizer.
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-2,
-                 w_init=None, degeneracy=None, p=None, rng=None,
+                 w_init=None, degeneracy=None, p=None, prior='soft', rng=None,
                  a=None, optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
 
@@ -75,13 +77,13 @@ class ICA(BaseEstimator, TransformerMixin):
         if optimizer == 'L-BFGS-B':
             self.optimizer = optimizers.LBFGSB(n_sources=n_sources, n_mixtures=n_mixtures,
                                                degeneracy=degeneracy,
-                                               lambd=lambd, p=p, a=a)
+                                               lambd=lambd, p=p, prior=prior, a=a)
         elif optimizer == 'sgd':
             self.optimizer = optimizers.SGD(n_sources=n_sources, n_mixtures=n_mixtures,
                                             w_0=w_0, lambd=lambd,
                                             degeneracy=degeneracy,
                                             learning_rule=learning_rule,
-                                            p=p, a=a)
+                                            p=p, prior=prior, a=a)
         else:
             raise ValueError
 

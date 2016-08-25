@@ -32,7 +32,7 @@ overcompleteness = 2
 degeneracy_control = 'Lp'
 p=4
 """
-lambd = 10.
+lambd = .1
 n_mixtures = X_zca.shape[0]
 n_sources  = n_mixtures*overcompleteness
 #ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
@@ -44,6 +44,7 @@ ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
 ica.fit(X_zca)
 """
 model = sc.SparseCoding(n_mixtures, n_sources, lambd)
+print(model.transform(X_zca))
 model.fit(X_zca)
 
 
@@ -73,5 +74,5 @@ def plot_bases(bases,figsize=None):
     ax.set_axis_off()
     plt.show()
 
-bases = ica.components_
+bases = model.components_
 plot_bases(bases,figsize=(10,10))
