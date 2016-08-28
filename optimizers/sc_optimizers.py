@@ -34,7 +34,7 @@ class SC_Optimizer(Optimizer):
         res = minimize(float_f_df, w, jac=True, method='L-BFGS-B', callback=callback)
         w_f = res.x
         l, g = float_f_df(w_f)
-        print('ICA with L-BFGS-B done!')
+        print('SC with L-BFGS-B done!')
         print('Final loss value: {}'.format(l))
         return w_f.reshape(components_.shape)
 
@@ -53,7 +53,6 @@ class SC_Hard(SC_Optimizer):
     def f_df(self, w):
         self.reset_L(w.reshape(self.components_shape))
         val = self.f_df_f(w.astype('float32'))
-        print val
         return [r.astype('float64') for r in val]
 
     def reset_L(self, components_):
@@ -178,7 +177,6 @@ class SC_Soft(SC_Optimizer):
     def f_df(self, w):
         self.reset_L(w.reshape(self.components_shape))
         val = self.f_df_f(w.astype('float32'))
-        print val
         return [r.astype('float64') for r in val]
 
     def reset_L(self, components_):
