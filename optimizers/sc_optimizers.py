@@ -31,10 +31,11 @@ class SC_Optimizer(Optimizer):
         self.components_shape = components_.shape
         float_f_df = lambda w: self.f_df(w)
         w = components_.ravel()
-        res = minimize(float_f_df, w, jac=True, method='L-BFGS-B', callback=callback)
+        res = minimize(float_f_df, w, jac=True, method='L-BFGS-B',
+                       callback=callback)
         w_f = res.x
         l, g = float_f_df(w_f)
-        print('ICA with L-BFGS-B done!')
+        print('SC with L-BFGS-B done!')
         print('Final loss value: {}'.format(l))
         return w_f.reshape(components_.shape)
 
@@ -53,14 +54,13 @@ class SC_Hard(SC_Optimizer):
     def f_df(self, w):
         self.reset_L(w.reshape(self.components_shape))
         val = self.f_df_f(w.astype('float32'))
-        print val
         return [r.astype('float64') for r in val]
 
     def reset_L(self, components_):
         W = components_/np.linalg.norm(components_, axis=-1, keepdims=True)
         gram = W.dot(W.T)
         n = gram.shape[0]-1
-        L = sp.linalg.eigh(gram, eigvals_only=True, eigvals=(n, n))[0]
+        L = 2. * sp.linalg.eigh(gram, eigvals_only=True, eigvals=(n, n))[0]
         self.L.set_value(np.array(L).astype('float32'))
 
     def setup(self, n_sources, n_mixtures):
@@ -93,7 +93,7 @@ class SC_Hard(SC_Optimizer):
     def prior_cost(self, S):
         return abs(S).mean(axis=1).sum()
 
-    def transforms(self, W, X, n_steps=150):
+    def transforms(self, W, X, n_steps=100):
         n_batch = X.shape[1]
         n_neurons = W.shape[0]
 
@@ -119,7 +119,7 @@ class SC_Hard(SC_Optimizer):
         S = xt[-1]
 
         X_hat = W.T.dot(S)
-        return S, X_hat, yt
+        return S, X_hat
 
     def setup_transforms(self, **kwargs):
         """
@@ -131,9 +131,9 @@ class SC_Hard(SC_Optimizer):
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
         
-        S, X_hat, S_all = self.transforms(Wn, X)
+        S, X_hat = self.transforms(Wn, X)
 
-        self.transform_f = theano.function(inputs=[X, W], outputs=[S, S_all])
+        self.transform_f = theano.function(inputs=[X, W], outputs=[S])
         self.reconstruct_f = theano.function(inputs=[X, W], outputs=[X_hat])
 
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, **kwargs)
@@ -159,7 +159,7 @@ class SC_Hard(SC_Optimizer):
         """
         Create costs and intermediate values from input variables.
         """
-        S, X_hat, S_all = self.transforms(Wn, X)
+        S, X_hat = self.transforms(Wn, X)
         S = theano.gradient.disconnected_grad(S)
         error = self.reconstruction_cost(Wn, X, S)
         penalty = self.prior_cost(S)
@@ -178,7 +178,6 @@ class SC_Soft(SC_Optimizer):
     def f_df(self, w):
         self.reset_L(w.reshape(self.components_shape))
         val = self.f_df_f(w.astype('float32'))
-        print val
         return [r.astype('float64') for r in val]
 
     def reset_L(self, components_):
@@ -244,7 +243,7 @@ class SC_Soft(SC_Optimizer):
         S = xt[-1]
 
         X_hat = W.T.dot(S)
-        return S, X_hat, yt
+        return S, X_hat
 
     def setup_transforms(self, **kwargs):
         """
@@ -256,9 +255,9 @@ class SC_Soft(SC_Optimizer):
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
         
-        S, X_hat, S_all = self.transforms(Wn, X)
+        S, X_hat = self.transforms(Wn, X)
 
-        self.transform_f = theano.function(inputs=[X, W], outputs=[S, S_all])
+        self.transform_f = theano.function(inputs=[X, W], outputs=[S])
         self.reconstruct_f = theano.function(inputs=[X, W], outputs=[X_hat])
 
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, **kwargs)
@@ -284,7 +283,7 @@ class SC_Soft(SC_Optimizer):
         """
         Create costs and intermediate values from input variables.
         """
-        S, X_hat, S_all = self.transforms(Wn, X)
+        S, X_hat = self.transforms(Wn, X)
         S = theano.gradient.disconnected_grad(S)
         error = self.reconstruction_cost(Wn, X, S)
         penalty = self.prior_cost(S)
