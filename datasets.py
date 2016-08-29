@@ -1,5 +1,6 @@
 from __future__ import division
 import os, h5py
+from h5py import File
 import numpy as np
 from numpy.linalg import *
 from random import sample
@@ -7,7 +8,7 @@ from random import sample
 from scipy.io import loadmat
 from scipy import signal
 from sklearn.feature_extraction import image
-#from skimage.filters import gabor_kernel
+from skimage.filters import gabor_kernel
 from scipy.optimize import minimize
 
 import theano
@@ -49,9 +50,11 @@ def generate_imagePatches(datasetPath,patch_size=8,n_patches=200000,\
         f.create_dataset(name='X_mean',data=patches_mean)
         f.create_dataset(name='K',data=K)
 
-def whiten(whitening, X_train, X_test):
+def whiten(X_train, X_test, whitening='eig'):
+
     n_samples = X_train.shape[-1]
-    X_test_pca = None
+    X_test_zca = None
+
     if whitening=='svd':
         u, d, _ = svd(X_train, full_matrices=False)
         del _
@@ -66,16 +69,18 @@ def whiten(whitening, X_train, X_test):
     elif whitening=='eig':
         d, u = eig(np.cov(X_train))
         K = np.sqrt(inv(np.diag(d))).dot(u.conj().T)
-        del u,d
         X_pca = K.dot(X_train)
+        X_zca = u.dot(K).dot(X_train)
         if X_test is not None:
             X_test_pca = K.dot(X_test)
+            X_test_zca = u.dot(K).dot(X_test)
+
     elif whitening is None:
-        X_pca = X_train.copy()
+        X_zca = X_train.copy()
         if X_test is not None:
-            X_test_pca = X_test.copy()
-        K = None
-    return X_pca, X_test_pca, K
+            X_test_zca = X_test.copy()
+        
+    return X_zca, X_test_zca
 
 
 def generate_filterbank(freqs=None, n_theta=8, n_freq=8, im_shape=(8, 8),
@@ -158,7 +163,6 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
     total_samples = n_samples
     if test_samples is not None:
         total_samples += test_samples
-    whitening = 'svd'
 
     if demo_n==0:
         kernels = generate_filterbank(im_shape=(im_size, im_size), real=False)
@@ -176,6 +180,7 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
 
     if demo_n==1:
         images = loadmat('IMAGES_RAW.mat')['IMAGESr']
+        print images.shape
         im_size = int(np.sqrt(n_mixtures))
         patches = image.PatchExtractor(patch_size=(im_size, im_size),\
                                        max_patches=total_samples//images.shape[-1],
@@ -249,21 +254,41 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
             X = X_train
         S = None
         A = None
+
+    if demo_n==5:        
+        filename = '/home/redwood/data/vanhateren/images_curated.h5'
+        key = 'van_hateren_good'
+        with File(filename,'r') as f:
+            images = f[key].value        
+        patch_size = 16
+        n_dimensions = patch_size**2           
+        n_samples = total_samples = 200000                 
+        rng = np.random.RandomState(1234)
+        patches = image.PatchExtractor(patch_size=(patch_size, patch_size),\
+                                       max_patches=total_samples//images.shape[0],
+                                       random_state=rng).transform(images)
+        X = patches.reshape((patches.shape[0],n_dimensions)).T       
+        if test_samples is not None:
+            order = rng.permutation(X.shape[1])
+            X_test = X[:, order][:, :test_samples]
+            X = np.hstack((X, X_test))
+        S = None
+        A = None
+
     '''
     data preprocessing
     '''
+    
     X_train = X[:, :n_samples]
     X_mean = X_train.mean(axis=-1, keepdims=True)
     X_train -= X_mean
+    
     if test_samples is not None:
         X_test = X[:, n_samples:]
         X_test -= X_mean
     else:
         X_test = None
-        X_test_pca = None
 
-    X_pca, X_test_pca, K = whiten(whitening, X_train, X_test)
-    if K is None:
-        K = K_pre
+    X_zca, X_test_zca = whiten(X_train, X_test)
 
-    return X_train, X_pca, K, S, X_mean, A, X_test, X_test_pca
+    return X_train, X_zca, S, X_mean, A, X_test, X_test_zca

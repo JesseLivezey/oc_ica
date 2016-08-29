@@ -1,8 +1,8 @@
 from __future__ import division
 import numpy as np
 from numpy.linalg import inv,norm
-import ica as ocICA
-reload(ocICA)
+from models import ica
+reload(ica)
 
 
 def decorr_complete(X):
@@ -33,9 +33,9 @@ def get_W(w_init, degeneracy):
     """Obtain W that minimizes the ICA loss funtion without the penalty"""
     n_sources, n_mixtures = w_init.shape
     X = np.ones((n_mixtures, 2), dtype='float32')
-    ica = ocICA.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
+    model = ica.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
                     degeneracy=degeneracy, lambd=0., w_init=w_init.copy())
-    return ica.fit(X).components_
+    return model.fit(X).components_
 
 def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources, n_mixtures):
     W_0 = np.zeros((len(initial_conditions),n_sources,n_mixtures))

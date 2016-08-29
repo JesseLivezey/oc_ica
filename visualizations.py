@@ -1,5 +1,6 @@
 from __future__ import division
 import pdb,h5py
+from h5py import File
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ from utils import tile_raster_images as tri
 from utils import fractional_polar_axes as polar
 import evaluate_degeneracy_controls as dgcs
 reload(dgcs)
-from optimizers import adam
+
 import ica as ocica
 reload(ocica)
 import datasets as ds
@@ -217,7 +218,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
         n= 45
         b = np.arange(1,91)
         if j==0:
-	    ax.plot(b[:n],h[:n],drawstyle='steps-pre',
+            ax.plot(b[:n],h[:n],drawstyle='steps-pre',
                 color='k',lw=1.5,label=costs[j])
         
             ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
@@ -236,7 +237,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
 
         b0 = np.arange(1,91)
         ax.plot(b0[:n],h0[:n],'--',drawstyle='steps-pre',color='r',lw=1)
-	ax2.plot(b0[n:],h0[n:],'--',drawstyle='steps-pre',color='r',lw=1)
+        ax2.plot(b0[n:],h0[n:],'--',drawstyle='steps-pre',color='r',lw=1)
 
         # hide the spines between ax and ax2
         ax.spines['right'].set_visible(False)
@@ -435,7 +436,7 @@ def plot_figure3a(angles,labels,density=True,\
     else:
         plt.show()
 
-def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
+def plot_figure3(bases=None,oc=2,lambd=10.,savePath=None):
     """Reproduces figure 3 of the NIPS16 paper
     Parameters:
     ----------
@@ -454,7 +455,8 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
     costs = ['L2','COULOMB','RANDOM','L4']
     #if not given, compute bases
     if bases is None:
-        X, K = ds.generate_data(demo=1)[1:3]
+        X = ds.generate_data(demo_n=5)[1]
+        print X.shape
         bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
     #compute the angles
     n_sources = bases.shape[1]
@@ -471,7 +473,7 @@ def plot_figure3(bases=None,oc=4,lambd=10.,savePath=None):
     #figure3b
     ax_bases = plt.axes([.55,.15,.4,.8])
     w = bases[-1]
-    plot_bases(w.dot(K),ax=ax_bases)
+    plot_bases(w,ax=ax_bases)
     fig.text(.01,.9,'a)',fontsize=14)
     fig.text(.5,.9,'b)',fontsize=14)
     if savePath is not None:
@@ -485,6 +487,8 @@ def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     ----------
     X     : array
            Whiten data. Dimension: n_samples X n_features
+    K     : array
+           Whitening matrix. 
     oc    : int, optional
            Overcompleteness 
     lambd : float, optional
@@ -493,11 +497,20 @@ def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     n_mixtures = X.shape[0]
     n_sources  = n_mixtures*oc
     bases = np.zeros((len(costs),n_sources,n_mixtures))
+    f = File('bases_oc_%i_lambda_%.1f.h5'%(oc,lambd))
+    try:
+        keys = f.keys()
+    except:
+        keys = []
     for i in xrange(len(costs)):
-        ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
-                        degeneracy=costs[i],optimizer='L-BFGS-B')
-        ica.fit(X)
-        bases[i] = ica.components_
+        if costs[i] not in keys:
+            ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
+                        degeneracy=costs[i])
+            ica.fit(X)
+            bases[i] = ica.components_
+            f.create_dataset(name=costs[i],data=bases[i])
+        else:
+            continue
     return bases
 
 def get_Gabor_params(bases):
@@ -506,7 +519,7 @@ def get_Gabor_params(bases):
            ICA bases. Dimension: n_costs X n_sources X n_mixtures
     """
     if len(bases.shape)==2:
-	bases = bases[np.newaxis,...]
+        bases = bases[np.newaxis,...]
     params = []
     for i in xrange(bases.shape[0]):
         fitter = fit.GaborFit()
@@ -516,7 +529,8 @@ def get_Gabor_params(bases):
         params.append(fitter.fit(w))
     return params
 
-def plot_GaborFit_xy(params,color=.5,savePath=None):
+def plot_GaborFit_xy(params,color=.5,savePath=None,
+                     ax=None, figsize=None):
     """Plot Gabor parameters using a "confetti plot": 
        - position of rectangle:  position of Gabor
        - width,height of rectangle:  variance of envelope 
@@ -534,13 +548,16 @@ def plot_GaborFit_xy(params,color=.5,savePath=None):
            If figure is stored, it is not displayed.   
     """ 
     color = plt.cm.viridis(color)
-    fig = plt.figure('xy',figsize=(2,2))
-    fig.clf()
-    ax = plt.axes([.15,.15,.8,.8])
+    if figsize is None:
+        figsize = (2,2)
+    if ax is None:
+        fig = plt.figure('xy',figsize=figsize)   
+        fig.clf()
+        ax = plt.axes([.15,.15,.8,.8])
     freq = params[4]
     indices = np.where(freq>1)[0]
-    max_vx = np.max(params[5])*5
-    max_vy = np.max(params[6])*5
+    max_vx = np.max(params[5])
+    max_vy = np.max(params[6])
     for i in indices:
         x = params[0][i]
         y = params[1][i]
@@ -553,14 +570,15 @@ def plot_GaborFit_xy(params,color=.5,savePath=None):
                                    alpha=.8))
     ax.set_xlim(1,6)
     ax.set_ylim(1,6)
-    ax.set_xlabel('X',fontsize=14)
-    ax.set_ylabel('Y',fontsize=14)
+    ax.set_xlabel('x-position',fontsize=14)
+    ax.set_ylabel('y-position',fontsize=14)
     if savePath is not None:
         plt.savefig(savePath,dpi=300)
     else:
-        plt.show()
+        pass#plt.show()
 
-def plot_GaborFit_polar(params,color=.5,savePath=None):
+def plot_GaborFit_polar(params,color=.5,savePath=None, 
+                        figsize=None):
     """Plot Gabor parameters using a polar plot: 
        - radius: frequency 
        - angle : orientation of the Gabor
@@ -577,7 +595,9 @@ def plot_GaborFit_polar(params,color=.5,savePath=None):
            If figure is stored, it is not displayed.   
     """ 
     color = plt.cm.viridis(color)
-    fig = plt.figure('polar',figsize=(2,2))
+    if figsize is None:
+        figsize = (2,2)
+    fig = plt.figure('polar',figsize=figsize)
     fig.clf()
     ax = polar(fig)
     freq = params[4]/np.max(params[4])
@@ -588,7 +608,8 @@ def plot_GaborFit_polar(params,color=.5,savePath=None):
     else:
         plt.show()
 
-def plot_GaborFit_envelope(params,color=.5,savePath=None):
+def plot_GaborFit_envelope(params,color=.5,savePath=None,
+                           ax=None, figsize=None):
     """Plot Gabor parameters using a scatter plot: 
        - position of circles: size of the evelope (varx,vary) 
        - size of the circle : frequency of the cosine function
@@ -605,9 +626,12 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None):
            If figure is stored, it is not displayed.   
     """ 
     color = plt.cm.viridis(color)
-    fig = plt.figure('polar',figsize=(2,2))
-    fig.clf()
-    ax = plt.axes([.15,.15,.8,.8])
+    if figsize is None:
+        figsize = (2,2)
+    if ax is None:
+        fig = plt.figure('polar',figsize=figsize)
+        fig.clf()
+        ax = plt.axes([.15,.15,.8,.8])
     max_vx = np.max(params[1][5])*5
     max_vy = np.max(params[1][6])*5
     freq = params[1][4]
