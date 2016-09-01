@@ -1,12 +1,65 @@
 from __future__ import division
 import numpy as np
-from numpy.linalg import inv,norm
+import scipy as sp
 from models import ica
 reload(ica)
 
 
+def find_max_allowed_k(As):
+    """
+    Given either a dictionary containing lists of mixing
+    matrices or a list of matrices, compute the highest
+    k-sparseness that will still allow recovery.
+    """
+    def max_allowed_for_list(A_list):
+        k = np.inf
+        for A in A_list:
+            A = A/np.linalg.norm(A, axis=0, keepdims=True)
+            off_gram = A.T.dot(A) - np.eye(A.shape[1])
+            mu = abs(off_gram).max()
+            k_temp = int(np.floor(.5*(1. + 1./mu)))
+            if k_temp < k:
+                k = k_temp
+        return k
+
+    if isinstance(As, dict):
+        k = np.inf
+        for key in As.keys():
+            k_temp = max_allowed_for_list(As[key])
+            if k_temp < k:
+                k = k_temp
+    elif isinstance(As, list):
+        k = max_allowed_for_list(As[key])
+    else:
+        raise ValueError
+    
+    return k
+
+def recovery_statistics(W, W0):
+    """
+    Compute recovery statistics for mixing matrix and
+    recovered matrix.
+    """
+    def kl(p, q):
+        return sp.stats.entropy(p, q)
+
+    def perm_delta(W, W0):
+        P = abs(W.dot(W0.T))
+        P_max = np.zeros_like(P)
+        max_idx = np.array([np.arange(P.shape[0]), np.argsmax(P, axis=1)])
+        P_max[max_idx] = 1.
+        return abs(P_max.sum(axis=0)-1).sum()
+
+    w_angles = compute_angles(W)
+    w0_angles = compute_angles(W0)
+    bins = np.arange(0, 91)
+    w_dist = np.histogram(w_angles, bins, density=True)
+    w0_dist = np.histogram(w0_angles, bins, density=True)
+
+    return kl(w_dist, w0_dist), perm_delta(W, W0)
+
 def decorr_complete(X):
-    return inv(np.sqrt(X.dot(X.T))).dot(X)
+    return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
 #    return X.dot(X.T.dot(X)**(-1/2))
 
 def decorr(w):
@@ -21,12 +74,12 @@ def get_Winit(n_sources, n_mixtures, init='random'):
     elif init=='pathological':
         w = np.tile(np.eye(n_mixtures), (n_sources//n_mixtures, 1))+\
             np.random.randn(n_sources, n_mixtures)/100
-    w = w/norm(w, axis=-1, keepdims=True)
+    w = w/np.linalg.norm(w, axis=-1, keepdims=True)
     return w
 
 def quasi_ortho_decorr(w):
     wd = decorr(w.copy())
-    wd = wd/norm(wd, axis=-1, keepdims=True)
+    wd = wd/np.linalg.norm(wd, axis=-1, keepdims=True)
     return wd
 
 def get_W(w_init, degeneracy):
@@ -51,7 +104,7 @@ def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources, n_mixtures
     return W, W_0
 
 def compute_angles(w):
-    w = w/norm(w, axis=-1, keepdims=True)
+    w = w/np.linalg.norm(w, axis=-1, keepdims=True)
     gram = w.dot(w.T)
     gram_off_diag = gram[np.tri(gram.shape[0], k=-1, dtype=bool)]
     return np.arccos(abs(gram_off_diag))/np.pi*180
