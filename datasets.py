@@ -14,6 +14,32 @@ from scipy.optimize import minimize
 import theano
 import theano.tensor as T
 
+
+def decorrelate(X):
+    d, u = eig(np.cov(X))
+    K = np.sqrt(inv(np.diag(d))).dot(u.T)
+    X_zca = u.dot(K).dot(X)
+    return X_zca
+
+def generate_k_sparse(A, k, n_samples, rng, lambd=1.):
+    _, source_dim = A.shape
+    #generate sources
+    S = rng.laplace(0, lambd, size=(source_dim, n_samples))
+
+    for ii in range(total_samples):
+        S[np.argsort(abs(S[:,ii]))[:-k], ii] = 0.
+
+    S /= S.std(axis=-1, keepdims=True)
+
+    #generate data
+    X = A.dot(S)
+
+    #preprocess data
+    X_mean = X.mean(axis=-1, keepdims=True)
+    X -= X_mean
+    X_zca = decorrelate(X)
+    return X_zca
+
 def generate_imagePatches(datasetPath,patch_size=8,n_patches=200000,\
                             rng=None):
 
