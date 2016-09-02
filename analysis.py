@@ -14,10 +14,12 @@ def find_max_allowed_k(As):
     def max_allowed_for_list(A_list):
         k = np.inf
         for A in A_list:
-            A = A/np.linalg.norm(A, axis=0, keepdims=True)
+            #A = A/np.linalg.norm(A, axis=0, keepdims=True)
             off_gram = A.T.dot(A) - np.eye(A.shape[1])
             mu = abs(off_gram).max()
-            k_temp = int(np.floor(.5*(1. + 1./mu)))
+            #k_temp = int(np.floor(.5*(1. + 1./mu)))
+            k_temp = int(np.floor(1. + 1./mu))
+            print '\n----> k=%s'%str(k_temp)
             if k_temp < k:
                 k = k_temp
         return k
@@ -46,15 +48,15 @@ def recovery_statistics(W, W0):
     def perm_delta(W, W0):
         P = abs(W.dot(W0.T))
         P_max = np.zeros_like(P)
-        max_idx = np.array([np.arange(P.shape[0]), np.argsmax(P, axis=1)])
+        max_idx = np.array([np.arange(P.shape[0]), np.argmax(P, axis=1)])
         P_max[max_idx] = 1.
         return abs(P_max.sum(axis=0)-1).sum()
 
     w_angles = compute_angles(W)
     w0_angles = compute_angles(W0)
     bins = np.arange(0, 91)
-    w_dist = np.histogram(w_angles, bins, density=True)
-    w0_dist = np.histogram(w0_angles, bins, density=True)
+    w_dist = np.histogram(w_angles, bins, density=True)[0]
+    w0_dist = np.histogram(w0_angles, bins, density=True)[0]
 
     return kl(w_dist, w0_dist), perm_delta(W, W0)
 
