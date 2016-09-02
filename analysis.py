@@ -14,12 +14,12 @@ def find_max_allowed_k(As):
     def max_allowed_for_list(A_list):
         k = np.inf
         for A in A_list:
-            #A = A/np.linalg.norm(A, axis=0, keepdims=True)
+            A = A/np.linalg.norm(A, axis=0, keepdims=True)
             off_gram = A.T.dot(A) - np.eye(A.shape[1])
             mu = abs(off_gram).max()
             #k_temp = int(np.floor(.5*(1. + 1./mu)))
-            k_temp = int(np.floor(1. + 1./mu))
-            print '\n----> k=%s'%str(k_temp)
+            k_temp = int(np.floor(1 + 1./mu))
+            #print '\n----> k=%s'%str(k_temp)
             if k_temp < k:
                 k = k_temp
         return k
@@ -30,8 +30,9 @@ def find_max_allowed_k(As):
             k_temp = max_allowed_for_list(As[key])
             if k_temp < k:
                 k = k_temp
+            print '\n[%s]----> k=%s'%(key,str(k_temp))
     elif isinstance(As, list):
-        k = max_allowed_for_list(As[key])
+        k = max_allowed_for_list(As)
     else:
         raise ValueError
     

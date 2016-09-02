@@ -21,7 +21,7 @@ print '\nICA-SC comparison --> overcompleteness: %i'%OC
 print '\n------------------------------------------'
 
 n_mixtures = 32 
-global_k = True
+global_k = False#True
 n_sources = int(OC) * n_mixtures
 n_samples = 5 * n_mixtures * n_sources
 rng = np.random.RandomState(20160831)
@@ -72,8 +72,9 @@ for p in W_priors:
 
 if global_k:
     min_k =  find_max_allowed_k(A_dict)
-    print  '\nGlobal min. k-value: %i'%global_k
+    print  '\nGlobal min. k-value: %i'%min_k
     assert min_k > 1, 'min_k is too small'
+
 
 results = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter, 2))
 W_fits = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter) +
@@ -83,8 +84,8 @@ for ii, p in enumerate(W_priors):
     W_iter = []
     if not global_k:
         min_k = find_max_allowed_k(A_dict[p])
-        assert min_k > 1, 'min_k is too small for prior {}'.format(p)
         print  '\nLocal min k-value: %i'%min_k
+        assert min_k > 1, 'min_k is too small for prior {}'.format(p)
     for jj in range(n_iter):
         A = A_dict[p][jj]
         W0 = W_dict[p][jj]
