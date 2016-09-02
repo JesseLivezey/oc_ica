@@ -42,7 +42,7 @@ class SparseCoding(BaseEstimator, TransformerMixin):
         kwargs for optimizer.
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-4,
-                 w_init=None, degeneracy=None, p=None, prior='soft',rng=None,
+                 w_init=None, degeneracy=None, p=None, prior='hard',rng=None,
                  a=None, optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
 
