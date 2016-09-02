@@ -20,7 +20,7 @@ print '\n------------------------------------------'
 print '\nICA-SC comparison --> overcompleteness: %i'%OC
 print '\n------------------------------------------'
 
-n_mixtures = 64 
+n_mixtures = 32 
 global_k = True
 n_sources = int(OC) * n_mixtures
 n_samples = 5 * n_mixtures * n_sources
@@ -31,9 +31,9 @@ W_priors = ['L2', 'L4']
 #ica_models = [2, 4, 6, 8, 'RANDOM', 'COULOMB', 'COHERENCE']
 ica_models = [2, 4 ]
 #lambdas = np.logspace(-2, 2, num=9)
-lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3)
+lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3).astype(np.float32)
 #n_iter = 10
-n_iter = 5 
+n_iter = 2 
 
 def fit_ica_model(model, dim_sparse, lambd, X):
     dim_input = X.shape[0]
@@ -49,14 +49,13 @@ def fit_ica_model(model, dim_sparse, lambd, X):
 
 def fit_sc_model(dim_sparse,lambd, X):
     dim_input = X.shape[0]
-    pdb.set_trace()
     sc_model = sc.SparseCoding(n_mixtures=dim_input,
 	                       n_sources=dim_sparse,
                                lambd=lambd)
     sc_model.fit(X)
     return sc_model.components_
 
-#Creata mixing matrices
+#Create mixing matrices
 A_dict = dict()
 W_dict = dict()
 

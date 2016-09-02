@@ -58,7 +58,11 @@ def recovery_statistics(W, W0):
     w_dist = np.histogram(w_angles, bins, density=True)[0]
     w0_dist = np.histogram(w0_angles, bins, density=True)[0]
 
-    return kl(w_dist, w0_dist), perm_delta(W, W0)
+    kl_val = kl(w_dist, w0_dist)
+    if kl_val==np.inf:
+       kl_val = kl(w0_dist, w_dist)
+
+    return kl_val, perm_delta(W, W0)
 
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
