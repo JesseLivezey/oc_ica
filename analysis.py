@@ -17,9 +17,7 @@ def find_max_allowed_k(As):
             A = A/np.linalg.norm(A, axis=0, keepdims=True)
             off_gram = A.T.dot(A) - np.eye(A.shape[1])
             mu = abs(off_gram).max()
-            #k_temp = int(np.floor(.5*(1. + 1./mu)))
-            k_temp = int(np.floor(1 + 1./mu))
-            #print '\n----> k=%s'%str(k_temp)
+            k_temp = int(np.floor(.5*(1. + 1./mu)))
             if k_temp < k:
                 k = k_temp
         return k
@@ -30,7 +28,7 @@ def find_max_allowed_k(As):
             k_temp = max_allowed_for_list(As[key])
             if k_temp < k:
                 k = k_temp
-            print '\n[%s]----> k=%s'%(key,str(k_temp))
+            print '\n[%s]----> k=%s'%(key, str(k_temp))
     elif isinstance(As, list):
         k = max_allowed_for_list(As)
     else:
@@ -43,8 +41,8 @@ def recovery_statistics(W, W0):
     Compute recovery statistics for mixing matrix and
     recovered matrix.
     """
-    def kl(p, q):
-        return sp.stats.entropy(p, q)
+    def hellinger(p, q):
+        return np.linalg.norm(np.sqrt(p) - np.sqrt(q))
 
     def perm_delta(W, W0):
         P = abs(W.dot(W0.T))
@@ -59,11 +57,11 @@ def recovery_statistics(W, W0):
     w_dist = np.histogram(w_angles, bins, density=True)[0]
     w0_dist = np.histogram(w0_angles, bins, density=True)[0]
 
-    kl_val = kl(w_dist, w0_dist)
-    if kl_val==np.inf:
-       kl_val = kl(w0_dist, w_dist)
+    dist_val = dist(w_dist, w0_dist)
+    if dist_val==np.inf:
+       dist_val = dist(w0_dist, w_dist)
 
-    return kl_val, perm_delta(W, W0)
+    return dist_val, perm_delta(W, W0)
 
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
