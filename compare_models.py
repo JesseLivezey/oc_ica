@@ -12,28 +12,30 @@ except:
     OC = 2
 
 try:
-    OC = int(OC)
+    OC = float(OC)
 except:
     OC = 2
+
+OC = 2
 
 print '\n------------------------------------------'
 print '\nICA-SC comparison --> overcompleteness: %i'%OC
 print '\n------------------------------------------'
 
-n_mixtures = 32 
-global_k = False#True
-n_sources = int(OC) * n_mixtures
+n_mixtures = 128
+global_k = True
+n_sources = int(float(OC) * n_mixtures)
 n_samples = 5 * n_mixtures * n_sources
 rng = np.random.RandomState(20160831)
 
 #W_priors = ['L2', 'L4', 'RANDOM', 'COHERENCE']
-W_priors = ['L2', 'L4']
-#ica_models = [2, 4, 6, 8, 'RANDOM', 'COULOMB', 'COHERENCE']
-ica_models = [2, 4]
-#lambdas = np.logspace(-2, 2, num=9)
-lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3).astype(np.float32)
+W_priors = ['L2', 'L4', 'RANDOM']
+ica_models = [2, 4, 6, 8, 'RANDOM', 'COULOMB', 'COHERENCE']
+#ica_models = [2, 4]
+lambdas = np.logspace(-2, 2, num=9)
+#lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3).astype(np.float32)
 #n_iter = 10
-n_iter = 2 
+n_iter = 10
 
 def fit_ica_model(model, dim_sparse, lambd, X):
     dim_input = X.shape[0]
@@ -64,14 +66,15 @@ for p in W_priors:
     A_list = []
     W_list = []
     for ii in range(n_iter):
-        W = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures)[0])
-        A_list.append(np.linalg.pinv(W))
-        W_list.append(W)
+        AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures)[0])
+        A = AT.T
+        A_list.append(A)
+        W_list.append(np.linalg.pinv(A))
     A_dict[p] = A_list
     W_dict[p] = W_list
 
 if global_k:
-    min_k =  find_max_allowed_k(A_dict)
+    min_k =  find_max_allowed_k(A_dict, n_sources)
     print  '\nGlobal min. k-value: %i'%min_k
     assert min_k > 1, 'min_k is too small'
 
@@ -79,13 +82,15 @@ if global_k:
 results = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter, 2))
 W_fits = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter) +
                           (n_sources, n_mixtures))
+min_ks = np.nan * np.ones(len(W_priors))
 
 for ii, p in enumerate(W_priors):
     W_iter = []
     if not global_k:
-        min_k = find_max_allowed_k(A_dict[p])
+        min_k = find_max_allowed_k(A_dict[p], n_sources)
         print  '\nLocal min k-value: %i'%min_k
         assert min_k > 1, 'min_k is too small for prior {}'.format(p)
+    min_ks.append(min_k)
     for jj in range(n_iter):
         A = A_dict[p][jj]
         W0 = W_dict[p][jj]
@@ -103,4 +108,4 @@ for ii, p in enumerate(W_priors):
             W_fits[ii, -1, ll, jj] = W
 
 with open('comparison_{}_{}.pkl'.format(n_mixtures, OC), 'w') as f:
-    cPickle.dump((A_dict, W_dict, W_fits, results), f)
+    cPickle.dump((A_dict, W_dict, W_fits, min_ks, results), f)

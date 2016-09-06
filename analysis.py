@@ -5,30 +5,36 @@ from models import ica
 reload(ica)
 
 
-def find_max_allowed_k(As):
+def find_max_allowed_k(As, n_sources):
     """
     Given either a dictionary containing lists of mixing
     matrices or a list of matrices, compute the highest
     k-sparseness that will still allow recovery.
     """
     def max_allowed_for_list(A_list):
-        k = np.inf
+        k = n_sources
         for A in A_list:
             A = A/np.linalg.norm(A, axis=0, keepdims=True)
             off_gram = A.T.dot(A) - np.eye(A.shape[1])
+            angles = compute_angles(A.T)
             mu = abs(off_gram).max()
             k_temp = int(np.floor(.5*(1. + 1./mu)))
             if k_temp < k:
                 k = k_temp
+            A = np.linalg.pinv(A).T
+            A = A/np.linalg.norm(A, axis=0, keepdims=True)
+            off_gram = A.T.dot(A) - np.eye(A.shape[1])
+            angles = compute_angles(A.T)
+            mu = abs(off_gram).max()
+            k_temp = int(np.floor(.5*(1. + 1./mu)))
         return k
 
     if isinstance(As, dict):
-        k = np.inf
-        for key in As.keys():
+        k = n_sources
+        for key in sorted(As.keys()):
             k_temp = max_allowed_for_list(As[key])
             if k_temp < k:
                 k = k_temp
-            print '\n[%s]----> k=%s'%(key, str(k_temp))
     elif isinstance(As, list):
         k = max_allowed_for_list(As)
     else:

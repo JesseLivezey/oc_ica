@@ -76,10 +76,10 @@ class ICA(BaseEstimator, TransformerMixin):
         if optimizer == 'L-BFGS-B':
             self.optimizer = ica_optimizers.LBFGSB(n_sources=n_sources, n_mixtures=n_mixtures,
                                                degeneracy=degeneracy,
-                                               lambd=lambd, p=p, prior=prior, a=a)
+                                               lambd=float(lambd), p=p, prior=prior, a=a)
         elif optimizer == 'sgd':
             self.optimizer = ica_optimizers.SGD(n_sources=n_sources, n_mixtures=n_mixtures,
-                                            w_0=w_0, lambd=lambd,
+                                            w_0=w_0, lambd=float(lambd),
                                             degeneracy=degeneracy,
                                             learning_rule=learning_rule,
                                             p=p, prior=prior, a=a)
