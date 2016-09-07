@@ -63,7 +63,7 @@ def recovery_statistics(W, W0):
     w_dist = np.histogram(w_angles, bins, density=True)[0]
     w0_dist = np.histogram(w0_angles, bins, density=True)[0]
 
-    dist_val = dist(w_dist, w0_dist)
+    dist_val = hellinger(w_dist, w0_dist)
     if dist_val==np.inf:
        dist_val = dist(w0_dist, w_dist)
 

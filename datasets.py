@@ -26,7 +26,7 @@ def generate_k_sparse(A, k, n_samples, rng, lambd=1.):
     #generate sources
     S = rng.laplace(0, lambd, size=(source_dim, n_samples))
 
-    for ii in range(total_samples):
+    for ii in range(n_samples):
         S[np.argsort(abs(S[:,ii]))[:-k], ii] = 0.
 
     S /= S.std(axis=-1, keepdims=True)
