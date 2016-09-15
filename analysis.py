@@ -69,6 +69,33 @@ def recovery_statistics(W, W0):
 
     return dist_val, perm_delta(W, W0)
 
+def recovery_statistics_AW(A, W):
+    """
+    Compute recovery statistics for mixing matrix and
+    recovered matrix.
+    """
+    def hellinger(p, q):
+        return np.linalg.norm(np.sqrt(p) - np.sqrt(q))
+
+    def perm_delta(A, W):
+        P = abs(W.dot(A))
+        P_max = np.zeros_like(P)
+        max_idx = np.array([np.arange(P.shape[0]), np.argmax(P, axis=1)])
+        P_max[max_idx] = 1.
+        return abs(P_max.sum(axis=0)-1).sum()
+
+    a_angles = compute_angles(A.T)
+    w_angles = compute_angles(W)
+    bins = np.arange(0, 91)
+    a_dist = np.histogram(a_angles, bins, density=True)[0]
+    w_dist = np.histogram(w_angles, bins, density=True)[0]
+
+    dist_val = dist(a_dist, w_dist)
+    if dist_val==np.inf:
+       dist_val = dist(w0_dist, w_dist)
+
+    return dist_val, perm_delta(W, W0)
+
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
 #    return X.dot(X.T.dot(X)**(-1/2))

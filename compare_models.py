@@ -52,7 +52,7 @@ def fit_ica_model(model, dim_sparse, lambd, X):
 def fit_sc_model(dim_sparse,lambd, X):
     dim_input = X.shape[0]
     sc_model = sc.SparseCoding(n_mixtures=dim_input,
-	                       n_sources=dim_sparse,
+                               n_sources=dim_sparse,
                                lambd=lambd)
     sc_model.fit(X)
     return sc_model.components_
