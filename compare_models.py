@@ -30,7 +30,7 @@ rng = np.random.RandomState(20160831)
 
 #W_priors = ['L2', 'L4', 'RANDOM', 'COHERENCE']
 W_priors = ['L2', 'L4', 'RANDOM']
-ica_models = [2, 4, 6, 8, 'RANDOM', 'COULOMB', 'COHERENCE']
+ica_models = [2, 4, 6, 8, 'RANDOM', 'COULOMB']
 #ica_models = [2, 4]
 lambdas = np.logspace(-2, 2, num=9)
 #lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3).astype(np.float32)
@@ -39,17 +39,17 @@ n_iter = 10
 
 def fit_ica_model(model, dim_sparse, lambd, X):
     dim_input = X.shape[0]
-    if type(model) is int:
+    if isinstance(model, int):
         p = model
         model='Lp'
     else:
         p = None
-    ica_model = ica.ICA(n_mixtures=dim_input,n_sources=dim_sparse,lambd=lambd,
-                degeneracy=model,p=p)
+    ica_model = ica.ICA(n_mixtures=dim_input, n_sources=dim_sparse,
+                        lambd=lambd, degeneracy=model, p=p)
     ica_model.fit(X)
     return ica_model.components_
 
-def fit_sc_model(dim_sparse,lambd, X):
+def fit_sc_model(dim_sparse, lambd, X):
     dim_input = X.shape[0]
     sc_model = sc.SparseCoding(n_mixtures=dim_input,
                                n_sources=dim_sparse,
@@ -90,7 +90,7 @@ for ii, p in enumerate(W_priors):
         min_k = find_max_allowed_k(A_dict[p], n_sources)
         print  '\nLocal min k-value: %i'%min_k
         assert min_k > 1, 'min_k is too small for prior {}'.format(p)
-    min_ks[ii] = min_k
+    min_ks.append(min_k)
     for jj in range(n_iter):
         A = A_dict[p][jj]
         W0 = W_dict[p][jj]
@@ -108,4 +108,4 @@ for ii, p in enumerate(W_priors):
             W_fits[ii, -1, ll, jj] = W
 
 with open('comparison_{}_{}.pkl'.format(n_mixtures, OC), 'w') as f:
-    cPickle.dump((A_dict, W_dict, W_fits, min_ks, results), f)
+    cPickle.dump((W_priors, ica_models, lambdas, A_dict, W_dict, W_fits, min_ks, results), f)
