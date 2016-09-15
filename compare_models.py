@@ -90,7 +90,7 @@ for ii, p in enumerate(W_priors):
         min_k = find_max_allowed_k(A_dict[p], n_sources)
         print  '\nLocal min k-value: %i'%min_k
         assert min_k > 1, 'min_k is too small for prior {}'.format(p)
-    min_ks.append(min_k)
+    min_ks[ii] = min_k
     for jj in range(n_iter):
         A = A_dict[p][jj]
         W0 = W_dict[p][jj]
