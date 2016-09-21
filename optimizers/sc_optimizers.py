@@ -15,9 +15,10 @@ class SC_Optimizer(Optimizer):
     """
     Optimizer.
     """
-    def __init__(self, lambd, **fit_kwargs):
+    def __init__(self, lambd, verbose=False, **fit_kwargs):
         self.L = theano.shared(np.array(1.).astype('float32'))
         self.lambd = lambd
+        self.verbose = verbose
         super(SC_Optimizer, self).__init__(**fit_kwargs)
 
     def fit(self, data, components_):
@@ -27,12 +28,16 @@ class SC_Optimizer(Optimizer):
         def callback(w):
             res = self.callback_f(w.astype('float32'))
             print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(*res[:4]))
+        if self.verbose:
+            cb = callback
+        else:
+            cb = None
         self.X.set_value(data.astype('float32'))
         self.components_shape = components_.shape
         float_f_df = lambda w: self.f_df(w)
         w = components_.ravel()
         res = minimize(float_f_df, w, jac=True, method='L-BFGS-B',
-                       callback=callback)
+                       callback=cb)
         w_f = res.x
         l, g = float_f_df(w_f)
         print('SC with L-BFGS-B done!')

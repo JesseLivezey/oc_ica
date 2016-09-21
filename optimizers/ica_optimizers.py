@@ -9,7 +9,7 @@ from theano.compat.python2x import OrderedDict
 __authors__ = "Jesse Livezey, Alex Bujan"
 
 
-def sgd(params, grads, learning_rate=1.):
+def sgd(params, grads, learning_rate=.01):
     updates = OrderedDict()
     for param, grad in zip(params, grads):
         updates[param] = param - learning_rate * grad
@@ -60,8 +60,9 @@ class Optimizer(object):
     """
     Optimizer.
     """
-    def __init__(self, prior='soft', **fit_kwargs):
+    def __init__(self, prior='soft', verbose=False, **fit_kwargs):
         assert prior in ['soft', 'hard']
+        self.verbose = verbose
         self.prior = prior
         self.fit_kwargs = fit_kwargs
         self.setup(**fit_kwargs)
@@ -127,17 +128,18 @@ class Optimizer(object):
                 error = error**2
             error = (1./p) * T.sum(error)
         elif degeneracy == 'COULOMB':
-            epsilon = 0.1
+            epsilon = 0.01
             error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
-        elif degeneracy == 'COULOMB_A':
-            assert a is not None
-            epsilon = 0.1
+        elif degeneracy == 'COULOMB_F':
+            if a is None:
+                a = 2.
+            epsilon = 0.01
             error = .5 * T.sum((1. / (1. + epsilon - gram**2)**(1 / a)) - (gram**2 / a))
         elif degeneracy == 'RANDOM':
-            epsilon = 0.1
+            epsilon = 0.01
             error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
-        elif degeneracy == 'RANDOM_A':
-            epsilon = 0.1
+        elif degeneracy == 'RANDOM_F':
+            epsilon = 0.01
             error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
         elif degeneracy == 'COHERENCE':
             error = abs(gram_diff).max()
@@ -208,11 +210,15 @@ class LBFGSB(Optimizer):
         def callback(w):
             res = self.callback_f(w.astype('float32'))
             print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(*res[:4]))
+        if self.verbose:
+            cb = callback
+        else:
+            cb = None
         self.X.set_value(data.astype('float32'))
         w = components_.ravel()
         float_f_df = lambda w: tuple([r.astype('float64') for r in
                                 self.f_df(w.astype('float32'))])
-        res = minimize(float_f_df, w, jac=True, method='L-BFGS-B', callback=callback)
+        res = minimize(float_f_df, w, jac=True, method='L-BFGS-B', callback=cb)
         w_f = res.x
         l, g = float_f_df(w_f)
         print('ICA with L-BFGS-B done!')
@@ -226,7 +232,6 @@ class SGD(Optimizer):
         """
         SGD optimization
         """
-        print n_sources
         X = T.matrix('X')
         W  = theano.shared(np.random.randn(n_sources, n_mixtures).astype('float32'))
         self.W = W
@@ -253,7 +258,7 @@ class SGD(Optimizer):
         return W, self.train_f
 
     def fit(self, data, components_,
-            tol=1e-5, batch_size=512, n_epochs=1000,
+            tol=0., batch_size=512, n_epochs=100000,
             seed=20160615):
         """
         Fit components_ from data.
@@ -286,13 +291,14 @@ class SGD(Optimizer):
             error /= n_examples
             penalty /= n_examples
             mse /= n_examples
-            print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(cur_cost,
-                error, penalty, mse))
+            if self.verbose:
+                print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(cur_cost,
+                    error, penalty, mse))
             if cur_cost < lowest_cost-tol or True:
                 lowest_cost = cur_cost
             else:
                 break
 
-        print('ICA with SGD done!')
+        print('ICA with SGD done!' + str(ii))
         print('Final loss value: {}'.format(cur_cost))
         return self.W.get_value()

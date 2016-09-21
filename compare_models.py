@@ -1,6 +1,7 @@
 import numpy as np
 from models import ica, sc
-from analysis import evaluate_dgcs, find_max_allowed_k, recovery_statistics
+from optimizers.ica_optimizers import sgd
+from analysis import evaluate_dgcs, find_max_allowed_k
 from datasets import generate_k_sparse
 import sys,pdb
 import cPickle
@@ -28,16 +29,18 @@ n_sources = int(float(OC) * n_mixtures)
 n_samples = 5 * n_mixtures * n_sources
 rng = np.random.RandomState(20160831)
 
-#W_priors = ['L2', 'L4', 'RANDOM', 'COHERENCE']
-W_priors = ['L2', 'L4', 'RANDOM']
-ica_models = [2, 4, 6, 8, 'RANDOM', 'COULOMB']
+W_priors = ['L2', 'L4', 'RANDOM', 'COHERENCE']
+#W_priors = ['L2', 'L4', 'RANDOM']
+ica_models = [2, 4, 6, 'COHERENCE', 'RANDOM', 'RANDOM_F', 'COULOMB_F', 'COULOMB']
+model_kwargs = [dict(), dict(), dict(), {'optimizer': 'sgd', 'learning_rule': sgd},
+                dict(), dict(), dict(), dict()]
 #ica_models = [2, 4]
-lambdas = np.logspace(-2, 2, num=9)
+lambdas = np.logspace(-2, 2, num=17)
 #lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3).astype(np.float32)
 #n_iter = 10
-n_iter = 10
+n_iter = 40
 
-def fit_ica_model(model, dim_sparse, lambd, X):
+def fit_ica_model(model, dim_sparse, lambd, X, rng, **kwargs):
     dim_input = X.shape[0]
     if isinstance(model, int):
         p = model
@@ -45,15 +48,15 @@ def fit_ica_model(model, dim_sparse, lambd, X):
     else:
         p = None
     ica_model = ica.ICA(n_mixtures=dim_input, n_sources=dim_sparse,
-                        lambd=lambd, degeneracy=model, p=p)
+                        lambd=lambd, degeneracy=model, p=p, rng=rng, **kwargs)
     ica_model.fit(X)
     return ica_model.components_
 
-def fit_sc_model(dim_sparse, lambd, X):
+def fit_sc_model(dim_sparse, lambd, X, rng, **kwargs):
     dim_input = X.shape[0]
     sc_model = sc.SparseCoding(n_mixtures=dim_input,
                                n_sources=dim_sparse,
-                               lambd=lambd)
+                               lambd=lambd, rng=rng, **kwargs)
     sc_model.fit(X)
     return sc_model.components_
 
@@ -79,7 +82,6 @@ if global_k:
     assert min_k > 1, 'min_k is too small'
 
 
-results = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter, 2))
 W_fits = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter) +
                           (n_sources, n_mixtures))
 min_ks = np.nan * np.ones(len(W_priors))
@@ -97,15 +99,11 @@ for ii, p in enumerate(W_priors):
         X = generate_k_sparse(A, min_k, n_samples, rng, lambd=1.)
         for kk, model in enumerate(ica_models):
             for ll, lambd in enumerate(lambdas):
-                W = fit_ica_model(model, n_sources, lambd, X)
-                kl, sigma = recovery_statistics(W, W0)
-                results[ii, kk, ll, jj] = np.array([kl, sigma])
+                W = fit_ica_model(model, n_sources, lambd, X, rng)
                 W_fits[ii, kk, ll, jj] = W
         for ll, lambd in enumerate(lambdas):
-            W = fit_sc_model(n_sources, lambd, X)
-            kl, delta = recovery_statistics(W, W0)
-            results[ii, -1, ll, jj] = np.array([kl, delta])
+            W = fit_sc_model(n_sources, lambd, X, rng)
             W_fits[ii, -1, ll, jj] = W
 
-with open('comparison_{}_{}.pkl'.format(n_mixtures, OC), 'w') as f:
+with open('comparison_{}_{}_{}.pkl'.format(n_mixtures, OC, '_'.join(W_priors), 'w') as f:
     cPickle.dump((W_priors, ica_models, lambdas, A_dict, W_dict, W_fits, min_ks, results), f)

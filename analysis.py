@@ -131,17 +131,19 @@ def quasi_ortho_decorr(w):
     wd = wd/np.linalg.norm(wd, axis=-1, keepdims=True)
     return wd
 
-def get_W(w_init, degeneracy):
+def get_W(w_init, degeneracy, **kwargs):
     """
     Obtain W that minimizes the ICA loss funtion without the penalty
     """
     n_sources, n_mixtures = w_init.shape
     X = np.ones((n_mixtures, 2), dtype='float32')
     model = ica.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
-                    degeneracy=degeneracy, lambd=0., w_init=w_init.copy())
+                    degeneracy=degeneracy, lambd=0., w_init=w_init.copy(),
+                    **kwargs)
     return model.fit(X).components_
 
-def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources, n_mixtures):
+def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources,
+                  n_mixtures, **kwargs):
     W_0 = np.zeros((len(initial_conditions),n_sources,n_mixtures))
     W = np.zeros((len(initial_conditions),len(degeneracy_controls),
                   n_sources,n_mixtures))
@@ -149,7 +151,7 @@ def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources, n_mixtures
         W_0[i] = get_Winit(n_sources, n_mixtures, init=init)
         for j,dg in enumerate(degeneracy_controls):
             if dg!='QUASI-ORTHO':
-                W[i,j] = get_W(W_0[i], dg)
+                W[i,j] = get_W(W_0[i], dg, **kwargs)
             else:
                 W[i,j] = quasi_ortho_decorr(W_0[i])
     return W, W_0
