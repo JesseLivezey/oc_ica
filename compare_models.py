@@ -1,10 +1,11 @@
+from __future__ import print_function, division
+import h5py, sys
 import numpy as np
+
 from models import ica, sc
 from optimizers.ica_optimizers import sgd
 from analysis import evaluate_dgcs, find_max_allowed_k
 from datasets import generate_k_sparse
-import sys,pdb
-import cPickle
 
 
 try:
@@ -19,9 +20,9 @@ except:
 
 OC = 2
 
-print '\n------------------------------------------'
-print '\nICA-SC comparison --> overcompleteness: %i'%OC
-print '\n------------------------------------------'
+print('------------------------------------------')
+print('ICA-SC comparison --> overcompleteness: {}'.format(OC))
+print('------------------------------------------')
 
 n_mixtures = 128
 global_k = True
@@ -29,15 +30,11 @@ n_sources = int(float(OC) * n_mixtures)
 n_samples = 5 * n_mixtures * n_sources
 rng = np.random.RandomState(20160831)
 
-W_priors = ['L2', 'L4', 'RANDOM', 'COHERENCE']
-#W_priors = ['L2', 'L4', 'RANDOM']
+A_priors = ['L2', 'L4', 'RANDOM', 'COHERENCE']
 ica_models = [2, 4, 6, 'COHERENCE', 'RANDOM', 'RANDOM_F', 'COULOMB_F', 'COULOMB']
 model_kwargs = [dict(), dict(), dict(), {'optimizer': 'sgd', 'learning_rule': sgd},
                 dict(), dict(), dict(), dict()]
-#ica_models = [2, 4]
 lambdas = np.logspace(-2, 2, num=17)
-#lambdas = np.array([.1,1.],dtype=np.float32)#np.logspace(-1, 2, num=3).astype(np.float32)
-#n_iter = 10
 n_iter = 40
 
 def fit_ica_model(model, dim_sparse, lambd, X, rng, **kwargs):
@@ -61,41 +58,32 @@ def fit_sc_model(dim_sparse, lambd, X, rng, **kwargs):
     return sc_model.components_
 
 #Create mixing matrices
-A_dict = dict()
-W_dict = dict()
+A_array = np.nan * np.ones((len(A_priors), n_iter, n_mixtures, n_sources))
 
-for p in W_priors:
-    '\n - Generating target angle distributions with prior: [%s]'%p
-    A_list = []
-    W_list = []
-    for ii in range(n_iter):
-        AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures)[0])
-        A = AT.T
-        A_list.append(A)
-        W_list.append(np.linalg.pinv(A))
-    A_dict[p] = A_list
-    W_dict[p] = W_list
+for ii, p in enumerate(A_priors):
+    print('Generating target angle distributions with prior: {}'.format(p))
+    for jj in range(n_iter):
+        AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures, rng)[0])
+        A_array[ii, jj] = AT.T
 
 if global_k:
-    min_k =  find_max_allowed_k(A_dict, n_sources)
-    print  '\nGlobal min. k-value: %i'%min_k
+    min_k =  find_max_allowed_k(A_array)
+    print('Global min. k-value: {}'.format(min_k))
     assert min_k > 1, 'min_k is too small'
 
 
-W_fits = np.nan * np.ones((len(W_priors), len(ica_models)+1, lambdas.size, n_iter) +
+W_fits = np.nan * np.ones((len(A_priors), len(ica_models)+1, lambdas.size, n_iter) +
                           (n_sources, n_mixtures))
-min_ks = np.nan * np.ones(len(W_priors))
+min_ks = np.nan * np.ones(len(A_priors))
 
-for ii, p in enumerate(W_priors):
-    W_iter = []
+for ii, p in enumerate(A_priors):
     if not global_k:
-        min_k = find_max_allowed_k(A_dict[p], n_sources)
-        print  '\nLocal min k-value: %i'%min_k
+        min_k = find_max_allowed_k(A_array[ii])
+        print('Local min k-value: {}'.format(min_k))
         assert min_k > 1, 'min_k is too small for prior {}'.format(p)
-    min_ks.append(min_k)
+    min_ks[ii] = min_k
     for jj in range(n_iter):
-        A = A_dict[p][jj]
-        W0 = W_dict[p][jj]
+        A = A_array[ii, jj]
         X = generate_k_sparse(A, min_k, n_samples, rng, lambd=1.)
         for kk, model in enumerate(ica_models):
             for ll, lambd in enumerate(lambdas):
@@ -105,5 +93,10 @@ for ii, p in enumerate(W_priors):
             W = fit_sc_model(n_sources, lambd, X, rng)
             W_fits[ii, -1, ll, jj] = W
 
-with open('comparison_{}_{}_{}.pkl'.format(n_mixtures, OC, '_'.join(W_priors), 'w') as f:
-    cPickle.dump((W_priors, ica_models, lambdas, A_dict, W_dict, W_fits, min_ks, results), f)
+with h5py.File('comparison_{}_{}_{}.h5'.format(n_mixtures, OC, '_'.join(A_priors)), 'w') as f:
+    f.create_dataset('A_priors', data=np.array([str(p) for p in A_priors]))
+    f.create_dataset('ica_models', data=np.array(ica_models))
+    f.create_dataset('lambdas', data=lambdas)
+    f.create_dataset('A_array', data=A_array)
+    f.create_dataset('W_fits', data=W_fits)
+    f.create_dataset('min_ks', data=np.array(min_ks))
