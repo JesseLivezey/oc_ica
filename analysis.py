@@ -14,33 +14,24 @@ def normalize_W(W):
     return W/np.linalg.norm(W, axis=1, keepdims=True)
 
 
-def find_max_allowed_k(As, n_sources):
+def find_max_allowed_k(As):
     """
-    Given either a dictionary containing lists of mixing
-    matrices or a list of matrices, compute the highest
-    k-sparseness that will still allow recovery.
+    Given an array of mixing matrices,
+    compute the highest k-sparseness
+    that will still allow recovery.
     """
-    def max_allowed_for_list(A_list):
-        k = n_sources
-        for A in A_list:
-            A = normalize_A(A)
-            off_gram = A.T.dot(A) - np.eye(A.shape[1])
-            mu = abs(off_gram).max()
-            k_temp = int(np.floor(.5*(1. + 1./mu)))
-            if k_temp < k:
-                k = k_temp
-        return k
+    shape = As.shape
+    n_sources = shape[-1]
+    As = As.reshape(-1, shape[-2], shape[-1])
 
-    if isinstance(As, dict):
-        k = n_sources
-        for key in sorted(As.keys()):
-            k_temp = max_allowed_for_list(As[key])
-            if k_temp < k:
-                k = k_temp
-    elif isinstance(As, list):
-        k = max_allowed_for_list(As)
-    else:
-        raise ValueError
+    k = n_sources
+    for A in As:
+        A = normalize_A(A)
+        off_gram = A.T.dot(A) - np.eye(A.shape[1])
+        mu = abs(off_gram).max()
+        k_temp = int(np.floor(.5*(1. + 1./mu)))
+        if k_temp < k:
+            k = k_temp
     
     return k
 
@@ -114,15 +105,18 @@ def decorr_complete(X):
 def decorr(w):
     return (3/2) * w - (1/2) * w.dot(w.T).dot(w)
 
-def get_Winit(n_sources, n_mixtures, init='random'):
+def get_Winit(n_sources, n_mixtures, init='random', rng=None):
+    if rng is None:
+        rng = np.random.RandomState(20160916)
+
     if init=='random':
-        w = np.random.randn(n_sources, n_mixtures)
+        w = rng.randn(n_sources, n_mixtures)
     elif init=='collimated':
-        w = np.tile(np.random.randn(1, n_mixtures), (n_sources, 1))+\
-            np.random.randn(n_sources, n_mixtures)/2
+        w = np.tile(rng.randn(1, n_mixtures), (n_sources, 1))+\
+            rng.randn(n_sources, n_mixtures)/2
     elif init=='pathological':
         w = np.tile(np.eye(n_mixtures), (n_sources//n_mixtures, 1))+\
-            np.random.randn(n_sources, n_mixtures)/100
+            rng.randn(n_sources, n_mixtures)/100
     w = w/np.linalg.norm(w, axis=-1, keepdims=True)
     return w
 
@@ -131,27 +125,29 @@ def quasi_ortho_decorr(w):
     wd = wd/np.linalg.norm(wd, axis=-1, keepdims=True)
     return wd
 
-def get_W(w_init, degeneracy, **kwargs):
+def get_W(w_init, degeneracy, rng=None, **kwargs):
     """
     Obtain W that minimizes the ICA loss funtion without the penalty
     """
+    if rng is None:
+        rng = np.random.RandomState(20160915)
     n_sources, n_mixtures = w_init.shape
     X = np.ones((n_mixtures, 2), dtype='float32')
     model = ica.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
                     degeneracy=degeneracy, lambd=0., w_init=w_init.copy(),
-                    **kwargs)
+                    rng=rng, **kwargs)
     return model.fit(X).components_
 
 def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources,
-                  n_mixtures, **kwargs):
+                  n_mixtures, rng=None, **kwargs):
     W_0 = np.zeros((len(initial_conditions),n_sources,n_mixtures))
     W = np.zeros((len(initial_conditions),len(degeneracy_controls),
                   n_sources,n_mixtures))
     for i,init in enumerate(initial_conditions):
-        W_0[i] = get_Winit(n_sources, n_mixtures, init=init)
+        W_0[i] = get_Winit(n_sources, n_mixtures, init=init, rng=rng)
         for j,dg in enumerate(degeneracy_controls):
             if dg!='QUASI-ORTHO':
-                W[i,j] = get_W(W_0[i], dg, **kwargs)
+                W[i,j] = get_W(W_0[i], dg, rng=rng, **kwargs)
             else:
                 W[i,j] = quasi_ortho_decorr(W_0[i])
     return W, W_0
