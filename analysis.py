@@ -35,30 +35,32 @@ def find_max_allowed_k(As):
     
     return k
 
-def recovery_statistics(W, W0):
-    """
-    Compute recovery statistics for mixing matrix and
-    recovered matrix.
-    """
-    def hellinger(p, q):
-        return np.linalg.norm(np.sqrt(p) - np.sqrt(q))
+def hellinger(p, q):
+    return np.linalg.norm(np.sqrt(p) - np.sqrt(q))
 
-    def perm_delta(W, W0):
-        P = abs(W.dot(W0.T))
-        P_max = np.zeros_like(P)
-        max_idx = np.array([np.arange(P.shape[0]), np.argmax(P, axis=1)])
-        P_max[max_idx] = 1.
-        return abs(P_max.sum(axis=0)-1).sum()
+def perm_delta(A, W):
+    P = abs(W.dot(A))
+    
+    P_max = np.zeros_like(P, dtype=bool)
+    P_max[np.arange(P.shape[0]), np.argmax(P, axis=1)] = 1
+    
+    max_vals = P[P_max]
+    max_angles = cos2deg(max_vals)
+    max_dist, bins = angle_histogram(max_angles)
+    
+    other_vals = P[np.logical_not(P_max)]
+    other_angles = cos2deg(other_vals)
+    other_dist, bins = angle_histogram(other_angles)
+    
+    return (abs(P_max.sum(axis=0)-1).sum(),
+            max_angles,
+            other_angles,
+            hellinger(max_dist, other_dist))
 
-    w_angles = compute_angles(W)
-    w0_angles = compute_angles(W0)
+def angle_histogram(angles):
     bins = np.arange(0, 91)
-    w_dist = np.histogram(w_angles, bins, density=True)[0]
-    w0_dist = np.histogram(w0_angles, bins, density=True)[0]
-
-    dist_val = hellinger(w_dist, w0_dist)
-
-    return dist_val, perm_delta(W, W0)
+    dist = np.histogram(angles, bins, density=True)[0]
+    return dist, bins
 
 def recovery_statistics_AW(A, W):
     """
@@ -67,29 +69,6 @@ def recovery_statistics_AW(A, W):
     """
     A = normalize_A(A)
     W = normalize_W(W)
-    
-    def hellinger(p, q):
-        return np.linalg.norm(np.sqrt(p) - np.sqrt(q))
-
-    def perm_delta(A, W):
-        #Ap = np.linalg.pinv(W)
-        #Ap = Ap/np.linalg.norm(Ap, axis=0, keepdims=True)
-        #P = abs(Ap.T.dot(A))
-        P = abs(W.dot(A))
-        #print P.shape
-        #plt.imshow(P, cmap='gray', interpolation='nearest')
-        #plt.show()
-        P_max = np.zeros_like(P)
-        max_idx = np.array([np.arange(P.shape[0]), np.argmax(P, axis=1)])
-        #print max_idx.shape
-        #for ii, jj in max_idx.T:
-        #    P_max[ii, jj] = 1.
-#        P_max[max_idx] = 1.
-        P_max[np.arange(P.shape[0]), np.argmax(P, axis=1)] = 1.
-        #print P_max, P_max.sum()
-        #print abs(P_max.sum(axis=0)-1)
-        return abs(P_max.sum(axis=0)-1).sum()
-
     a_angles = compute_angles(A.T)
     w_angles = compute_angles(W)
     bins = np.arange(0, 91)
@@ -156,4 +135,7 @@ def compute_angles(w):
     w = normalize_W(w)
     gram = w.dot(w.T)
     gram_off_diag = gram[np.tri(gram.shape[0], k=-1, dtype=bool)]
-    return np.arccos(abs(gram_off_diag))/np.pi*180
+    return cos2deg(gram_off_diag)
+
+def cos2deg(cos):
+    return np.arccos(abs(cos))/np.pi*180.
