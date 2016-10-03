@@ -115,7 +115,7 @@ for ii, p in enumerate(A_priors):
             for ll, lambd in enumerate(lambdas):
                 if model == 'SC':
                     kwargs = model_kwargs.get(model, dict())
-                    W = fit_sc_model(model, n_sources, lambd, X, rng, **kwargs)
+                    W = fit_sc_model(n_sources, lambd, X, rng, **kwargs)
                     W_fits[ii, kk, ll, jj] = W
                 else:
                     try:
