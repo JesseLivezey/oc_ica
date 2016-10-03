@@ -2,10 +2,10 @@ from __future__ import print_function, division
 import h5py, sys
 import numpy as np
 
-from models import ica, sc
-from optimizers.ica_optimizers import sgd
-from analysis import evaluate_dgcs, find_max_allowed_k
-from datasets import generate_k_sparse
+from oc_ica.models import ica, sc
+from oc_ica.optimizers.ica_optimizers import sgd
+from oc_ica.analysis import evaluate_dgcs, find_max_allowed_k
+from oc_ica.datasets import generate_k_sparse
 
 
 try:
