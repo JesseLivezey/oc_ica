@@ -185,7 +185,7 @@ class LBFGSB(Optimizer):
         Wn = W / W_norm
 
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, degeneracy,
-                                                        lambd, a, p)
+                                                        lambd, p)
         loss_grad = T.grad(loss, Wv)
 
         X_normed = X/T.sqrt((X**2).sum(axis=0, keepdims=True))
