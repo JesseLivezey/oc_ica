@@ -100,7 +100,7 @@ class Optimizer(object):
         return self.losses_f(X.astype('float32'), W.astype('float32'))
         
     def cost(self, Wn, X, degeneracy=None, lambd=0.,
-             a=None, p=None, **kwargs):
+             p=None, **kwargs):
         """
         Create costs and intermediate values from input variables.
         """
@@ -130,10 +130,8 @@ class Optimizer(object):
             epsilon = 0.01
             error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
         elif degeneracy == 'COULOMB_F':
-            if a is None:
-                a = 2.
             epsilon = 0.01
-            error = .5 * T.sum((1. / (1. + epsilon - gram**2)**(1 / a)) - (gram**2 / a))
+            error = .5 * T.sum((1. / T.sqrt(1. + epsilon - gram**2)) - .5*gram**2)
         elif degeneracy == 'RANDOM':
             epsilon = 0.01
             error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
