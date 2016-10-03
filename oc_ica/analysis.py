@@ -3,7 +3,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 
-from models import ica
+from oc_ica.models import ica
 reload(ica)
 
 

@@ -1,6 +1,5 @@
 from __future__ import division
-import pdb,h5py
-from h5py import File
+import h5py
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -12,18 +11,18 @@ mpl.rcParams['ytick.labelsize'] = 10
 mpl.rcParams['axes.labelsize']  = 14
 mpl.rcParams['legend.fontsize'] = 10
 
-import utils
+from oc_ica import utils
 reload(utils)
-from utils import tile_raster_images as tri
-from utils import fractional_polar_axes as polar
-import analysis
+from oc_ica.utils import tile_raster_images as tri
+from oc_ica.utils import fractional_polar_axes as polar
+from oc_ica import analysis
 reload(analysis)
 
-import models.ica as ocica
+import oc_ica.models.ica as ocica
 reload(ocica)
-import datasets as ds
+from oc_ica import datasets as ds
 reload(ds)
-import gabor_fit as fit
+from oc_ica import gabor_fit as fit
 reload(fit)
 
 def plot_figure2cd(panel='c', eps=1e-2, savePath=None):
@@ -517,7 +516,7 @@ def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     n_mixtures = X.shape[0]
     n_sources  = n_mixtures*oc
     bases = np.zeros((len(costs),n_sources,n_mixtures))
-    f = File('bases_oc_%i_lambda_%.1f.h5'%(oc,lambd))
+    f = h5py.File('bases_oc_%i_lambda_%.1f.h5'%(oc,lambd))
     try:
         keys = f.keys()
     except:
