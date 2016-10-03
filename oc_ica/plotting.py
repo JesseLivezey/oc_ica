@@ -1,6 +1,5 @@
 from __future__ import division
-import pdb,h5py
-from h5py import File
+import h5py
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -12,23 +11,25 @@ mpl.rcParams['ytick.labelsize'] = 10
 mpl.rcParams['axes.labelsize']  = 14
 mpl.rcParams['legend.fontsize'] = 10
 
-import utils
+from oc_ica import utils
 reload(utils)
-from utils import tile_raster_images as tri
-from utils import fractional_polar_axes as polar
-import evaluate_degeneracy_controls as dgcs
-reload(dgcs)
+from oc_ica.utils import tile_raster_images as tri
+from oc_ica.utils import fractional_polar_axes as polar
+from oc_ica import analysis
+reload(analysis)
 
-import ica as ocica
+import oc_ica.models.ica as ocica
 reload(ocica)
-import datasets as ds
+from oc_ica import datasets as ds
 reload(ds)
-import gabor_fit as fit
+from oc_ica import gabor_fit as fit
 reload(fit)
 
-def plot_figure2cd(panel='c',savePath=None):
-    """Reproduces the panels c and d of figure 2 in the NIPS16 paper
-    Parameters:
+def plot_figure2cd(panel='c', eps=1e-2, savePath=None):
+    """
+    Reproduces the panels c and d of figure 2 in the NIPS16 paper
+
+    Parameters
     ----------
     panel: string, optional
          Which panel, options: 'c', 'd' 
@@ -36,46 +37,64 @@ def plot_figure2cd(panel='c',savePath=None):
          figure_path+figure_name+.format to store the figure. 
          If figure is stored, it is not displayed.   
     """
-    formatter=mpl.ticker.FormatStrFormatter('%.1f')
+    formatter = mpl.ticker.StrMethodFormatter('{x:.2g}')
     fig = plt.figure('costs',figsize=(3,3))
     fig.clf()
     ax = plt.axes([.16,.15,.8,.81])
     costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
     col = np.linspace(0,1,len(costs))
     if panel=='c':
-        xx = np.linspace(.6,1.,100)
-        fun = [lambda x: 2*x,lambda x: x/(1-x**2)**(3/2),lambda x: (2*x)/(1-x**2),lambda x: 4*x**3] 
+        xx = np.linspace(.6, 1., 100)
+        fun = [lambda x: x,
+               lambda x: x/(1.+eps-x**2)**(3/2),
+               lambda x: (2*x)/(1.+eps-x**2),
+               lambda x: x**3] 
         ax.set_yscale('log')
     elif panel=='d':
-        xx = np.linspace(-.17,.17,100)
-        fun = [lambda x: 2*x,lambda x: x/(1-x**2)**(3/2),lambda x: (2*x)/(1-x**2),lambda x: 4*x**3] 
+        xx = np.linspace(-.17, .17, 100)
+        fun = [lambda x: x,
+               lambda x: x/(1.+eps-x**2)**(3/2),
+               lambda x: (2*x)/(1.+eps-x**2),
+               lambda x: x**3] 
+
     for i in xrange(4):
-        ax.plot(xx,fun[i](xx),color=cm.viridis(col[i]),lw=2,label=costs[i])
+        ax.plot(xx, fun[i](xx), color=cm.viridis(col[i]),
+                lw=2, label=costs[i])
+
     if panel=='d':
         ax.spines['left'].set_position('zero')
         ax.spines['right'].set_color('none')
         ax.spines['bottom'].set_position('zero')
         ax.spines['top'].set_color('none')
+
     ax.spines['left'].set_smart_bounds(True)
     ax.spines['bottom'].set_smart_bounds(True)
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
     ax.set_xlim(np.min(xx),np.max(xx))
+    ax.minorticks_off()
+
     if panel=='c':
         ax.legend(loc='upper left',frameon=False,ncol=1)
-        ax.set_ylim(1e0,1e2)
-        ax.set_xticks(np.arange(0.6,1.1,.2))
+        ax.set_ylim([1e-1, 1e2])
+        ax.set_xticks(np.arange(0.6, 1.1, .2))
         ax.xaxis.set_major_formatter(formatter)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=-4)#20)
         ax.set_xlabel(r'$\cos\,\theta$')
     elif panel=='d':
-        ax.set_ylim(-.2,.2)
+        ax.set_ylim(-.1,.1)
         ax.set_xticks(np.arange(-.15,.16,.15))
-        ax.set_yticks(np.arange(-.2,.21,.1))
+        ax.xaxis.set_major_formatter(formatter)
+        ax.set_yticks(np.arange(-.1,.11,.05))
+        ax.yaxis.set_major_formatter(formatter)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=65)#20)
         ax.set_xlabel(r'$\cos\,\theta$',labelpad=80)#180)
+    else:
+        raise ValueError
+
     if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+        plt.savefig(savePath, dpi=300)
+    return fig
 
 def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
                         savePath=None,density=True):
@@ -111,7 +130,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
         ax = fig.add_subplot(columns,1,i+1)
         for j in xrange(rows):
             count+=1
-            angles = dgcs.compute_angles(W[i,j])
+            angles = analysis.compute_angles(W[i,j])
             h,b = np.histogram(angles,np.arange(0,91)) 
             if density:
                 h = h*1./np.sum(h)
@@ -123,7 +142,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
                 ax.plot(b,h,drawstyle='steps-pre',color=cmap(col[j]),
                     lw=1.5,label=costs[j])
 
-            angles0 = dgcs.compute_angles(W_0[i])
+            angles0 = analysis.compute_angles(W_0[i])
             h0,b0 = np.histogram(angles0,np.arange(0,91))
             if density:
                 h0 = h0*1./np.sum(h0)
@@ -211,7 +230,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
     fig.set_size_inches((3,3))
 
     for j in xrange(W.shape[0]):
-        angles = dgcs.compute_angles(W[j])
+        angles = analysis.compute_angles(W[j])
         h,b = np.histogram(angles,np.arange(0,91)) 
         if density:
             h = h*1./np.sum(h)
@@ -230,7 +249,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
             ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
                 color=cmap(col[j]),lw=1.5,label=costs[j])
 
-        angles0 = dgcs.compute_angles(W_0)
+        angles0 = analysis.compute_angles(W_0)
         h0,b0 = np.histogram(angles0,np.arange(0,91))
         if density:
             h0 = h0*1./np.sum(h0)
@@ -324,7 +343,7 @@ def plot_figure2b(W=None,W_0=None,savePath=None):
     initial_conditions = ['random','pathological']
     degeneracy_controls = ['QUASI-ORTHO','L2','COULOMB','RANDOM','L4']
     if W is None and W_0 is None:
-        W, W_0 = dgcs.evaluate_dgcs(initial_conditions, degeneracy_controls,
+        W, W_0 = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_broken_axis(W[1],W_0[1],costs,density=True,with_legend=False)
@@ -353,7 +372,7 @@ def plot_figure2a(W=None,W_0=None,savePath=None):
     initial_conditions = ['random','pathological']
     degeneracy_controls = ['QUASI-ORTHO','L2','COULOMB','RANDOM','L4']
     if W is None and W_0 is None:
-        W, W_0 = dgcs.evaluate_dgcs(initial_conditions, degeneracy_controls,
+        W, W_0 = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_1column(W[0][np.newaxis,...],W_0,costs,density=True)
@@ -462,7 +481,7 @@ def plot_figure3(bases=None,oc=2,lambd=10.,savePath=None):
     n_sources = bases.shape[1]
     angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
     for i in xrange(len(costs)):
-        angles[i] = dgcs.compute_angles(bases[i])
+        angles[i] = analysis.compute_angles(bases[i])
     #generate figure
     fig = plt.figure('Figure3',figsize=(6,3))
     fig.clf()
@@ -497,7 +516,7 @@ def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
     n_mixtures = X.shape[0]
     n_sources  = n_mixtures*oc
     bases = np.zeros((len(costs),n_sources,n_mixtures))
-    f = File('bases_oc_%i_lambda_%.1f.h5'%(oc,lambd))
+    f = h5py.File('bases_oc_%i_lambda_%.1f.h5'%(oc,lambd))
     try:
         keys = f.keys()
     except:

@@ -1,6 +1,5 @@
 from __future__ import division
 import numpy as np
-from collections import OrderedDict
 from scipy.optimize import minimize
 import theano
 import theano.tensor as T

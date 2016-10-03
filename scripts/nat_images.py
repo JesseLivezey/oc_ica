@@ -1,12 +1,13 @@
 from datasets import generate_data as gd
 import numpy as np
-from models import sc, ica
-reload(sc)
-reload(ica)
 import matplotlib.pyplot as plt
 from utils import tile_raster_images as tri
 from h5py import File
 from sklearn.feature_extraction import image
+
+from oc_ica.models import sc, ica
+reload(sc)
+reload(ica)
 
 filename = '/home/jesse/Development/data/vanhateren/images_curated.h5'
 key = 'van_hateren_good'
