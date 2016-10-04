@@ -14,7 +14,7 @@ def sgd(params, grads, learning_rate=.01):
         updates[param] = param - learning_rate * grad
     return updates
 
-def momentum(params, grads, learning_rate=1., momentum=.5,
+def momentum(params, grads, learning_rate=.01, momentum=.1,
              nesterov=True):
     """
     Nesterov momentum based on pylearn2 implementation.
@@ -172,7 +172,7 @@ class Optimizer(object):
 
 
 class LBFGSB(Optimizer):
-    def setup(self, n_sources, n_mixtures, degeneracy, lambd, a, p):
+    def setup(self, n_sources, n_mixtures, degeneracy, lambd, p):
         """
         L-BFGS-B Optimization
         """
@@ -225,7 +225,7 @@ class LBFGSB(Optimizer):
 
 class SGD(Optimizer):
     def setup(self, n_sources, n_mixtures, w_0, lambd, degeneracy,
-              learning_rule, a, p):
+              learning_rule, p):
         """
         SGD optimization
         """
@@ -237,7 +237,7 @@ class SGD(Optimizer):
         Wn = W / W_norm
         
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, degeneracy,
-                                                        lambd, a, p)
+                                                        lambd, p)
         loss_grad = T.grad(loss, W)
         updates = learning_rule([W], [loss_grad])
 
@@ -255,8 +255,8 @@ class SGD(Optimizer):
         return W, self.train_f
 
     def fit(self, data, components_,
-            tol=0., batch_size=512, n_epochs=100000,
-            seed=20160615):
+            tol=1e-4, batch_size=128, n_epochs=1000000,
+            patience=100, seed=20160615):
         """
         Fit components_ from data.
         """
@@ -268,6 +268,9 @@ class SGD(Optimizer):
             n_batches += 1
 
         lowest_cost = np.inf
+        costs = np.zeros(n_epochs)
+
+        improve = 0
 
         for ii in range(n_epochs):
             order = rng.permutation(n_examples)
@@ -288,13 +291,25 @@ class SGD(Optimizer):
             error /= n_examples
             penalty /= n_examples
             mse /= n_examples
+            costs[ii] = cur_cost
             if self.verbose:
                 print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(cur_cost,
                     error, penalty, mse))
-            if cur_cost < lowest_cost-tol or True:
+            if cur_cost < lowest_cost-tol:
                 lowest_cost = cur_cost
+                improve = 0
             else:
+                improve += 1
+            if improve == patience:
                 break
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot(costs)
+        plt.figure()
+        plt.semilogy(costs)
+        plt.figure()
+        plt.loglog(costs)
+        plt.show()
 
         print('ICA with SGD done!' + str(ii))
         print('Final loss value: {}'.format(cur_cost))

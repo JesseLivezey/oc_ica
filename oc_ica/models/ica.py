@@ -45,7 +45,7 @@ class ICA(BaseEstimator, TransformerMixin):
     """
     def __init__(self, n_mixtures, n_sources=None, lambd=1e-2,
                  w_init=None, degeneracy=None, p=None, prior='soft', rng=None,
-                 a=None, optimizer='L-BFGS-B', learning_rule=None,
+                 optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
 
         if learning_rule is not None:
@@ -77,13 +77,13 @@ class ICA(BaseEstimator, TransformerMixin):
         if optimizer == 'L-BFGS-B':
             self.optimizer = ica_optimizers.LBFGSB(n_sources=n_sources, n_mixtures=n_mixtures,
                                                degeneracy=degeneracy,
-                                               lambd=float(lambd), p=p, prior=prior, a=a)
+                                               lambd=float(lambd), p=p, prior=prior)
         elif optimizer == 'sgd':
             self.optimizer = ica_optimizers.SGD(n_sources=n_sources, n_mixtures=n_mixtures,
                                             w_0=w_0, lambd=float(lambd),
                                             degeneracy=degeneracy,
                                             learning_rule=learning_rule,
-                                            p=p, prior=prior, a=a)
+                                            p=p, prior=prior)
         else:
             raise ValueError
 
