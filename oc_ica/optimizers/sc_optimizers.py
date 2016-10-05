@@ -16,10 +16,9 @@ class SC_Optimizer(Optimizer):
     """
     Optimizer.
     """
-    def __init__(self, lambd, verbose=False, **fit_kwargs):
+    def __init__(self, lambd, **fit_kwargs):
         self.L = theano.shared(np.array(1.).astype('float32'))
         self.lambd = lambd
-        self.verbose = verbose
         super(SC_Optimizer, self).__init__(**fit_kwargs)
 
     def fit(self, data, components_):
@@ -99,7 +98,7 @@ class SC_Hard(SC_Optimizer):
     def prior_cost(self, S):
         return abs(S).mean(axis=1).sum()
 
-    def transforms(self, W, X, n_steps=100):
+    def transforms(self, W, X, n_steps=25):
         n_batch = X.shape[1]
         n_neurons = W.shape[0]
 

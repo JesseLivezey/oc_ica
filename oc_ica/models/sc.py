@@ -78,10 +78,12 @@ class SparseCoding(BaseEstimator, TransformerMixin):
         if optimizer == 'L-BFGS-B':
             if prior == 'hard':
                 self.optimizer = sc_optimizers.SC_Hard(n_sources=n_sources, n_mixtures=n_mixtures,
-                                                       lambd=float(lambd))
+                                                       lambd=float(lambd),
+                                                       **fit_kwargs)
             else:
                 self.optimizer = sc_optimizers.SC_Soft(n_sources=n_sources, n_mixtures=n_mixtures,
-                                                       lambd=float(lambd))
+                                                       lambd=float(lambd),
+                                                       **fit_kwargs)
         else:
             raise ValueError
 
