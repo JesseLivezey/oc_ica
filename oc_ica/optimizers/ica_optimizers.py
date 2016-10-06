@@ -139,7 +139,13 @@ class Optimizer(object):
             epsilon = 0.01
             error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
         elif degeneracy == 'COHERENCE':
-            error = abs(gram_diff).max()
+            agd = abs(gram_diff)
+            agds = agd**2
+            gs = gram**2
+            boundary = gs.mean()
+            boundary = theano.gradient.disconnected_grad(boundary)
+            error = T.switch(agds > boundary, agds, 0.).sum()
+            #error = abs(gram_diff).max()
         elif degeneracy is None:
             error = None
         else:
