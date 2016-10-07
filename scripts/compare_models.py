@@ -43,8 +43,6 @@ else:
 if models is None:
     models = [2, 4, 6, 'COHERENCE', 'RANDOM', 'RANDOM_F', 'COULOMB_F', 'COULOMB', 'SC']
 
-model_kwargs = {'COHERENCE': {'optimizer': 'sgd', 'learning_rule': sgd}}
-
 lambdas = np.logspace(-2, 2, num=17)
 n_iter = 40
 
@@ -74,9 +72,8 @@ if a_file is None:
 
     for ii, p in enumerate(A_priors):
         print('Generating target angle distributions with prior: {}\n'.format(p))
-        kwargs = model_kwargs.get(p, dict())
         for jj in range(n_iter):
-            AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures, rng, **kwargs)[0])
+            AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures, rng)[0])
             A_array[ii, jj] = AT.T
     with h5py.File('a_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC,
                                                           '_'.join(A_priors)), 'w') as f:
@@ -114,18 +111,15 @@ for ii, p in enumerate(A_priors):
         for kk, model in enumerate(models):
             for ll, lambd in enumerate(lambdas):
                 if model == 'SC':
-                    kwargs = model_kwargs.get(model, dict())
-                    W = fit_sc_model(n_sources, lambd, X, rng, **kwargs)
+                    W = fit_sc_model(n_sources, lambd, X, rng)
                     W_fits[ii, kk, ll, jj] = W
                 else:
                     try:
                         model = int(model)
                     except ValueError:
                         pass
-                    kwargs = model_kwargs.get(model, dict())
-                    W = fit_ica_model(model, n_sources, lambd, X, rng, **kwargs)
+                    W = fit_ica_model(model, n_sources, lambd, X, rng)
                     W_fits[ii, kk, ll, jj] = W
-                print(kwargs)
 
 print('\nSaving fits.')
 models = [str(m) for m in models]
