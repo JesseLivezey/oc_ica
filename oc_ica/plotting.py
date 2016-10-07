@@ -25,7 +25,65 @@ reload(ds)
 from oc_ica import gabor_fit as fit
 reload(fit)
 
-def plot_figure2cd(panel='c', eps=1e-2, savePath=None):
+
+def plot_figure1c(save_path=None):
+    sin = np.sin
+    cos = np.cos
+    sqrt = np.sqrt
+    n_pts = 100
+    l2_evals = [lambda th: th*0., 
+                lambda th: 8*sin(th)**2,
+                lambda th: 8*cos(th)**2 ]
+    l4_evals = [lambda th: 4*(cos(2*th)-cos(4*th)),
+                lambda th: -2*cos(2*th)-14*cos(4*th)
+                           -sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th)),
+                lambda th: -2*cos(2*th)-14*cos(4*th)
+                           +sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th))]
+
+
+    thetas = np.linspace(0, np.pi/2., n_pts)
+    l2_vals = np.zeros((len(l2_evals), n_pts))
+    l4_vals = np.zeros((len(l2_evals), n_pts))
+
+    col = np.linspace(0, 1, len(l2_evals))
+
+    for ii, f in enumerate(l2_evals):
+        l2_vals[ii] = f(thetas)
+    for ii, f in enumerate(l4_evals):
+        l4_vals[ii] = f(thetas)
+
+    f, (ax2, ax4) = plt.subplots(2, 1,
+                                 sharex=True,
+                                 figsize=(6, 3))
+    for ii, e in enumerate(l2_vals):
+        ax2.plot(thetas, e, label=r'$e_'+str(ii)+'$',
+                 c=cm.viridis(col[ii]), lw=2)
+    for ii, e in enumerate(l4_vals):
+        ax4.plot(thetas, e, c=cm.viridis(col[ii]), lw=2)
+
+    ax2.grid()
+    ax4.grid()
+
+    ax2.set_ylim([-.5, 8])
+    ax2.set_yticks(np.linspace(0, 8, 3))
+    ax2.legend(loc='middle right')
+    ax2.set_ylabel(r'$L_2$ $e_i$', labelpad=14)
+
+    ax4.set_xlim([0, np.pi/2.])
+    ax4.set_yticks(np.linspace(-30, 30, 5))
+    ax4.set_xticks(np.linspace(0, np.pi/2., 3))
+    ax4.set_xticklabels(['0', '45', '90'])
+    ax4.set_xlabel(r'$\theta_2$')
+    ax4.set_ylabel(r'$L_4$ $e_i$', labelpad=-0)
+
+    f.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
+
+    return f
+
+def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
     """
     Reproduces the panels c and d of figure 2 in the NIPS16 paper
 
@@ -33,7 +91,7 @@ def plot_figure2cd(panel='c', eps=1e-2, savePath=None):
     ----------
     panel: string, optional
          Which panel, options: 'c', 'd' 
-    savePath: string, optional
+    save_path: string, optional
          figure_path+figure_name+.format to store the figure. 
          If figure is stored, it is not displayed.   
     """
@@ -92,12 +150,12 @@ def plot_figure2cd(panel='c', eps=1e-2, savePath=None):
     else:
         raise ValueError
 
-    if savePath is not None:
-        plt.savefig(savePath, dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
     return fig
 
 def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
-                        savePath=None,density=True):
+                        save_path=None,density=True):
     """Plots angle distributions of different costs and initial conditions.  
     Parameters:
     ----------
@@ -110,7 +168,7 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
     costs : list or array of strings
            Names of the costs that were evaluated
     cmap  : colormap object, optional
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     density: boolean, optional
@@ -196,13 +254,13 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
     else:
         fig.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
                   wspace=0.05, hspace=0.05)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
 def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
-                            savePath=None,density=True,with_legend=True):
+                            save_path=None,density=True,with_legend=True):
     """Plots angle distributions of different costs and initial conditions  
     Parameters:
     ----------
@@ -215,7 +273,7 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
     costs : list or array of strings
            Names of the costs that are evaluated
     cmap  : colormap (plt.cm) object, optional
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     density: boolean, optional
@@ -318,12 +376,12 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
               wspace=0.05, hspace=0.05)
 
     fig.text(.525,.0125,r'$\theta$',fontsize=14)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
-def plot_figure2b(W=None,W_0=None,savePath=None):
+def plot_figure2b(W=None,W_0=None,save_path=None):
     """Reproduces figure 2b of the NIPS16 paper.
     Parameters:
     ----------
@@ -333,7 +391,7 @@ def plot_figure2b(W=None,W_0=None,savePath=None):
     W_0   : array, optional
            Initial set of basis. 
            Dimension: n_costs X n_vectors X n_dims
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     """
@@ -347,12 +405,12 @@ def plot_figure2b(W=None,W_0=None,savePath=None):
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_broken_axis(W[1],W_0[1],costs,density=True,with_legend=False)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
-def plot_figure2a(W=None,W_0=None,savePath=None):
+def plot_figure2a(W=None,W_0=None,save_path=None):
     """Reproduces figure 2a of the NIPS16 paper
     Parameters:
     ----------
@@ -362,7 +420,7 @@ def plot_figure2a(W=None,W_0=None,savePath=None):
     W_0   : array, optional
            Initial set of basis.
            Dimension: n_costs X n_vectors X n_dims
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     """
@@ -376,12 +434,12 @@ def plot_figure2a(W=None,W_0=None,savePath=None):
                                      n_sources, n_mixtures)
     costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
     plot_angles_1column(W[0][np.newaxis,...],W_0,costs,density=True)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
-def plot_bases(bases,savePath=None,ax=None,figname='bases'):
+def plot_bases(bases,save_path=None,ax=None,figname='bases'):
     """PLots a set of  bases. (Reproduces figure 3b of the NIPS16 paper.)
     Parameters:
     ----------
@@ -390,7 +448,7 @@ def plot_bases(bases,savePath=None,ax=None,figname='bases'):
            Dimension: n_costs X n_vectors X n_dims
     ax    : Axes object, optional
            If None, the funtion generates a new Axes object.
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     figname: string, optional
@@ -407,13 +465,13 @@ def plot_bases(bases,savePath=None,ax=None,figname='bases'):
                 output_pixel_vals=False)
     ax.imshow(im,aspect='auto',interpolation='nearest',cmap='gray')
     ax.set_axis_off()
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
 def plot_figure3a(angles,labels,density=True,\
-                   savePath=None,ax=None):
+                   save_path=None,ax=None):
     """Reproduces figure 3a of the NIPS16 paper
     Parameters:
     ----------
@@ -422,7 +480,7 @@ def plot_figure3a(angles,labels,density=True,\
            Dimension: n_costs X n_angles
     ax    : Axes object, optional
            If None, the funtion generates a new Axes object.
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     figname: string, optional
@@ -450,12 +508,12 @@ def plot_figure3a(angles,labels,density=True,\
     ax.legend(loc='best', frameon=False,ncol=1)
     ax.set_xlabel(r'$\theta$',labelpad=0)
     ax.set_xticks([20,55,90])
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
-def plot_figure3(bases=None,oc=2,lambd=10.,savePath=None):
+def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     """Reproduces figure 3 of the NIPS16 paper
     Parameters:
     ----------
@@ -465,7 +523,7 @@ def plot_figure3(bases=None,oc=2,lambd=10.,savePath=None):
            Overcompleteness 
     lambd : float, optional
            Sparsity
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     figname: string, optional
@@ -495,8 +553,8 @@ def plot_figure3(bases=None,oc=2,lambd=10.,savePath=None):
     plot_bases(w,ax=ax_bases)
     fig.text(.01,.9,'a)',fontsize=14)
     fig.text(.5,.9,'b)',fontsize=14)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
@@ -548,7 +606,7 @@ def get_Gabor_params(bases):
         params.append(fitter.fit(w))
     return params
 
-def plot_GaborFit_xy(params,color=.5,savePath=None,
+def plot_GaborFit_xy(params,color=.5,save_path=None,
                      ax=None, figsize=None):
     """Plot Gabor parameters using a "confetti plot": 
        - position of rectangle:  position of Gabor
@@ -562,7 +620,7 @@ def plot_GaborFit_xy(params,color=.5,savePath=None,
            Dimension of arrays : n_sources
     color : float, optional
            Color value for viridis colormap
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     """ 
@@ -591,12 +649,12 @@ def plot_GaborFit_xy(params,color=.5,savePath=None,
     ax.set_ylim(1,6)
     ax.set_xlabel('x-position',fontsize=14)
     ax.set_ylabel('y-position',fontsize=14)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         pass#plt.show()
 
-def plot_GaborFit_polar(params,color=.5,savePath=None, 
+def plot_GaborFit_polar(params,color=.5,save_path=None, 
                         figsize=None):
     """Plot Gabor parameters using a polar plot: 
        - radius: frequency 
@@ -609,7 +667,7 @@ def plot_GaborFit_polar(params,color=.5,savePath=None,
            Dimension of arrays : n_sources
     color : float, optional
            Color value for viridis colormap
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     """ 
@@ -622,12 +680,12 @@ def plot_GaborFit_polar(params,color=.5,savePath=None,
     freq = params[4]/np.max(params[4])
     theta = params[2]/np.pi*180
     ax.plot(theta,freq,'.',color=color,ms=5,mew=1)
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
 
-def plot_GaborFit_envelope(params,color=.5,savePath=None,
+def plot_GaborFit_envelope(params,color=.5,save_path=None,
                            ax=None, figsize=None):
     """Plot Gabor parameters using a scatter plot: 
        - position of circles: size of the evelope (varx,vary) 
@@ -640,7 +698,7 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None,
            Dimension of arrays : n_sources
     color : float, optional
            Color value for viridis colormap
-    savePath: string, optional
+    save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
     """ 
@@ -666,7 +724,7 @@ def plot_GaborFit_envelope(params,color=.5,savePath=None,
     ax.set_ylim(.0,.2)
     ax.set_xlabel(r'var[$\parallel$]')
     ax.set_ylabel(r'var[$\perp$]')
-    if savePath is not None:
-        plt.savefig(savePath,dpi=300)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
     else:
         plt.show()
