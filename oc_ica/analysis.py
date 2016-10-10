@@ -2,6 +2,10 @@ from __future__ import division
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+try:
+    from importlib import reload
+except ImportError:
+    pass
 
 from oc_ica.models import ica
 reload(ica)
