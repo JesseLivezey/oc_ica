@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 import theano
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
+from collections import OrderedDict
 
 __authors__ = "Jesse Livezey, Alex Bujan"
 
@@ -145,7 +145,6 @@ class Optimizer(object):
             boundary = gs.mean()
             boundary = theano.gradient.disconnected_grad(boundary)
             error = T.switch(agds > boundary, agds, 0.).sum()
-            error = T.nnet.softmax(gram).sum()
             #error = abs(gram_diff).max()
         elif degeneracy is None:
             error = None

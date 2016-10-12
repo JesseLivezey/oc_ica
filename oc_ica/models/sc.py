@@ -5,7 +5,6 @@ from collections import OrderedDict
 from scipy.optimize import minimize
 import theano
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
 
 from oc_ica.optimizers import sc_optimizers
 reload(sc_optimizers)
