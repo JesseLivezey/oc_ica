@@ -121,11 +121,17 @@ class Optimizer(object):
             error = .5 * T.sum((X_hat-X)**2, axis=0).mean()
         elif degeneracy == 'Lp':
             assert isinstance(p, int)
-            assert (p % 2) == 0
-            error = gram_diff
-            for ii in range(p//2):
-                error = error**2
-            error = (1./p) * T.sum(error)
+            if (p % 2) == 0:
+                error = gram_diff
+                for ii in range(p//2):
+                    error = error**2
+                error = (1./p) * T.sum(error)
+            else:
+                error = gram_diff
+                for ii in range(p//2):
+                    error = error**2
+                error = error * abs(gram_diff)
+                error = (1./p) * T.sum(error)
         elif degeneracy == 'COULOMB':
             epsilon = 0.01
             error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
@@ -145,7 +151,7 @@ class Optimizer(object):
             boundary = gs.mean()
             boundary = theano.gradient.disconnected_grad(boundary)
             error = T.switch(agds > boundary, agds, 0.).sum()
-            error = abs(gram_diff).max(axis=0).sum()
+            #error = agd.max(axis=0).sum()
             #error = abs(gram_diff).max()
         elif degeneracy is None:
             error = None
@@ -275,7 +281,6 @@ class SGD(Optimizer):
             n_batches += 1
 
         lowest_cost = np.inf
-        costs = np.zeros(n_epochs)
 
         improve = 0
 
@@ -298,7 +303,6 @@ class SGD(Optimizer):
             error /= n_examples
             penalty /= n_examples
             mse /= n_examples
-            costs[ii] = cur_cost
             if self.verbose:
                 print('Loss: {}, Error: {}, Penalty: {}, MSE: {}'.format(cur_cost,
                     error, penalty, mse))
@@ -309,14 +313,6 @@ class SGD(Optimizer):
                 improve += 1
             if improve == patience:
                 break
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.plot(costs)
-        plt.figure()
-        plt.semilogy(costs)
-        plt.figure()
-        plt.loglog(costs)
-        plt.show()
 
         print('ICA with SGD done!' + str(ii))
         print('Final loss value: {}'.format(cur_cost))

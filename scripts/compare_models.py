@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-import argparse, h5py, sys
+import argparse, h5py, sys, os
 import numpy as np
 
 from oc_ica.models import ica, sc
@@ -9,13 +9,18 @@ from oc_ica.datasets import generate_k_sparse
 
 
 parser = argparse.ArgumentParser(description='Fit models')
-parser.add_argument('--n_mixtures', '-n', type=int, default=128)
-parser.add_argument('--oc', '-o', type=float, default=2.)
+parser.add_argument('--n_mixtures', '-n', type=int, default=None)
+parser.add_argument('--n_iter', '-i', type=int, default=10)
+parser.add_argument('--lambda_min', '-u', type=float, default=-2.)
+parser.add_argument('--lambda_max', '-x', type=float, default=2.)
+parser.add_argument('--n_lambda', '-b', type=float, default=17)
+parser.add_argument('--oc', '-o', type=float, default=None)
 parser.add_argument('--priors', '-p', type=str, default=None, nargs='+')
 parser.add_argument('--models', '-m', type=str, default=None, nargs='+')
 parser.add_argument('--a', '-a', type=str, default=None)
 parser.add_argument('--k', '-k', type=int, default=None)
 parser.add_argument('--generate', '-g', default=False, action='store_true')
+parser.add_argument('--sgd_COHERENCE', '-s', default=False, action='store_true')
 args = parser.parse_args()
 
 n_mixtures = args.n_mixtures
@@ -25,14 +30,22 @@ models = args.models
 a_file = args.a
 generate = args.generate
 k = args.k
+n_iter = args.n_iter
+lambda_min = args.lambda_min
+lambda_max = args.lambda_max
+n_lambda = args.n_lambda
+sgd_COHERENCE = args.sgd_COHERENCE
+
+if sgd_COHERENCE:
+    assert generate
+
+scratch = os.getenv('SCRATCH', '')
 
 print('------------------------------------------')
 print('ICA-SC comparison --> overcompleteness: {}'.format(OC))
 print('------------------------------------------')
 
 global_k = True
-n_sources = int(float(OC) * n_mixtures)
-n_samples = 5 * n_mixtures * n_sources
 rng = np.random.RandomState(20160831)
 
 if priors is None:
@@ -43,8 +56,7 @@ else:
 if models is None:
     models = [2, 4, 6, 'COHERENCE', 'RANDOM', 'RANDOM_F', 'COULOMB_F', 'COULOMB', 'SC']
 
-lambdas = np.logspace(-2, 2, num=17)
-n_iter = 40
+lambdas = np.logspace(lambda_min, lambda_max, num=n_lambda)
 
 def fit_ica_model(model, dim_sparse, lambd, X, rng, **kwargs):
     dim_input = X.shape[0]
@@ -68,21 +80,32 @@ def fit_sc_model(dim_sparse, lambd, X, rng, **kwargs):
 
 if a_file is None:
     #Create mixing matrices
+    n_sources = int(float(OC) * n_mixtures)
     A_array = np.nan * np.ones((len(A_priors), n_iter, n_mixtures, n_sources), dtype='float32')
 
     for ii, p in enumerate(A_priors):
+        if sgd_COHERENCE and p == 'COHERENCE':
+            kwargs = {'optimizer': 'sgd',
+                      'learning_rule': sgd}
+        else:
+            kwargs = {}
         print('Generating target angle distributions with prior: {}\n'.format(p))
         for jj in range(n_iter):
-            AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures, rng)[0])
+            AT = np.squeeze(evaluate_dgcs(['random'], [p], n_sources, n_mixtures, rng, **kwargs)[0])
             A_array[ii, jj] = AT.T
-    with h5py.File('a_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC,
-                                                          '_'.join(A_priors)), 'w') as f:
+    fname = 'a_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC,
+                                                   '_'.join(A_priors))
+    with h5py.File(os.path.join(scratch, fname), 'w') as f:
         f.create_dataset('A_array', data=A_array)
         f.create_dataset('A_priors', data=np.array([str(p) for p in A_priors]))
 else:
     with h5py.File(a_file) as f:
         A_array = f['A_array'].value
         A_priors = f['A_priors'].value
+    n_mixtures = A_array.shape[-2]
+    n_sources = A_array.shape[-1]
+    OC = n_sources / n_mixtures
+n_samples = 5 * n_mixtures * n_sources
 
 if generate:
     sys.exit(0)
@@ -123,8 +146,11 @@ for ii, p in enumerate(A_priors):
 
 print('\nSaving fits.')
 models = [str(m) for m in models]
-with h5py.File('comparison_mixtures-{}_OC-{}_priors-{}_models-{}.h5'.format(n_mixtures, OC,
-                                                                            '_'.join(A_priors), '_'.join(models)), 'w') as f:
+fname = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_models-{}.h5'.format(n_mixtures,
+                                                                               n_sources, k,
+                                                                               '_'.join(A_priors),
+                                                                               '_'.join(models))
+with h5py.File(os.path.join(scratch, fname), 'w') as f:
     f.create_dataset('A_priors', data=np.array([str(p) for p in A_priors]))
     f.create_dataset('models', data=np.array(models))
     f.create_dataset('lambdas', data=lambdas)
