@@ -41,11 +41,11 @@ def plot_figure1c(save_path=None):
                            +sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th))]
 
 
-    thetas = np.linspace(0, np.pi/2., n_pts)
+    thetas = np.linspace(-np.pi/4., np.pi/4., n_pts)
     l2_vals = np.zeros((len(l2_evals), n_pts))
     l4_vals = np.zeros((len(l2_evals), n_pts))
 
-    col = np.linspace(0, 1, len(l2_evals))
+    col = np.linspace(0, .75, len(l2_evals))
 
     for ii, f in enumerate(l2_evals):
         l2_vals[ii] = f(thetas)
@@ -57,22 +57,23 @@ def plot_figure1c(save_path=None):
                                  figsize=(6, 3))
     for ii, e in enumerate(l2_vals):
         ax2.plot(thetas, e, label=r'$e_'+str(ii)+'$',
-                 c=cm.viridis(col[ii]), lw=2)
+                 c=cm.plasma(col[ii]), lw=2)
     for ii, e in enumerate(l4_vals):
-        ax4.plot(thetas, e, c=cm.viridis(col[ii]), lw=2)
+        ax4.plot(thetas, e, c=cm.plasma(col[ii]), lw=2)
 
     ax2.grid()
     ax4.grid()
 
     ax2.set_ylim([-.5, 8])
     ax2.set_yticks(np.linspace(0, 8, 3))
-    ax2.legend(loc='middle right')
+    ax2.legend(loc='center right')
     ax2.set_ylabel(r'$L_2$ $e_i$', labelpad=14)
 
-    ax4.set_xlim([0, np.pi/2.])
-    ax4.set_yticks(np.linspace(-30, 30, 5))
-    ax4.set_xticks(np.linspace(0, np.pi/2., 3))
-    ax4.set_xticklabels(['0', '45', '90'])
+    ax4.set_xlim([thetas[0], thetas[-1]])
+    ax4.set_yticks(np.linspace(-30, 30, 3))
+    ax4.set_xticks(np.linspace(thetas[0], thetas[-1], 3))
+    ax4.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
+                         np.pi*180.).astype(int))
     ax4.set_xlabel(r'$\theta_2$')
     ax4.set_ylabel(r'$L_4$ $e_i$', labelpad=-0)
 

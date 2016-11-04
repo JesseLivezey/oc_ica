@@ -42,7 +42,7 @@ def find_max_allowed_k(As):
 def hellinger(p, q):
     return np.linalg.norm(np.sqrt(p) - np.sqrt(q))
 
-def perm_delta(A, W):
+def perm_delta(A, W, full=False):
     P = abs(W.dot(A))
     
     P_max = np.zeros_like(P, dtype=bool)
@@ -50,36 +50,35 @@ def perm_delta(A, W):
     
     max_vals = P[P_max]
     max_angles = cos2deg(max_vals)
-    max_dist, bins = angle_histogram(max_angles)
-    
-    other_vals = P[np.logical_not(P_max)]
-    other_angles = cos2deg(other_vals)
-    other_dist, bins = angle_histogram(other_angles)
-    
+
+    if full:
+        other_vals = P[np.logical_not(P_max)]
+        other_angles = cos2deg(other_vals)
+        
+        return (abs(P_max.sum(axis=0)-1).sum(),
+                max_angles,
+                other_angles)
     return (abs(P_max.sum(axis=0)-1).sum(),
-            max_angles,
-            other_angles,
-            hellinger(max_dist, other_dist))
+            max_angles)
 
 def angle_histogram(angles):
     bins = np.arange(0, 91)
     dist = np.histogram(angles, bins, density=True)[0]
     return dist, bins
 
-def recovery_statistics_AW(A, W):
+def recovery_statistics_AW(A, W, full=False):
     """
     Compute recovery statistics for mixing matrix and
     recovered matrix.
     """
     A = normalize_A(A)
     W = normalize_W(W)
-    a_angles = compute_angles(A.T)
-    w_angles = compute_angles(W)
-    bins = np.arange(0, 91)
-    a_dist = np.histogram(a_angles, bins, density=True)[0]
-    w_dist = np.histogram(w_angles, bins, density=True)[0]
-
-    return hellinger(a_dist, w_dist), perm_delta(A, W)
+    results = perm_delta(A, W, full=full)
+    if full:
+        delta_p, ma, oa = results
+        return delta_P, np.nanmedian(ma), ma, oa
+    delta_P, ma = results
+    return delta_P, np.nanmedian(ma)
 
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
