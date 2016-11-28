@@ -174,6 +174,9 @@ class Optimizer(object):
             else:
                 penalty = abs(S).sum(axis=0).mean()
             loss = penalty
+        elif degeneracy is 'SM':
+            assert lambd == 0.
+            penalty = None
         elif lambd > 0.:
             if self.prior == 'soft':
                 penalty = T.log(T.cosh(S)).sum(axis=0).mean()

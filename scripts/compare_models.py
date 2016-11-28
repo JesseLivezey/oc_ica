@@ -132,7 +132,11 @@ for ii, p in enumerate(A_priors):
         A = A_array[ii, jj]
         X = generate_k_sparse(A, min_k, n_samples, rng, lambd=1.)
         for kk, model in enumerate(models):
-            for ll, lambd in enumerate(lambdas):
+            if model == 'SM':
+                lambdas_list = [0.]
+            else:
+                lambdas_list = lambdas
+            for ll, lambd in enumerate(lambdas_list):
                 if model == 'SC':
                     W = fit_sc_model(n_sources, lambd, X, rng)
                     W_fits[ii, kk, ll, jj] = W
