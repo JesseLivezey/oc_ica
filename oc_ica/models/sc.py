@@ -46,6 +46,7 @@ class SparseCoding(BaseEstimator, TransformerMixin):
                  a=None, optimizer='L-BFGS-B', learning_rule=None,
                  **fit_kwargs):
 
+        print prior
         assert prior in ['soft', 'hard']
 
         if learning_rule is not None:

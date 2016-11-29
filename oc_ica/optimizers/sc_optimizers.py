@@ -56,7 +56,7 @@ class SC_Hard(SC_Optimizer):
     """
     def __init__(self, lambd, **fit_kwargs):
         self.L = theano.shared(np.array(1.).astype('float32'))
-        super(SC_Optimizer, self).__init__(lambd, **fit_kwargs)
+        super(SC_Hard, self).__init__(lambd, **fit_kwargs)
 
     def f_df(self, w):
         self.reset_L(w.reshape(self.components_shape))
@@ -183,10 +183,11 @@ class SC_Soft(SC_Optimizer):
     Optimizer.
     """
     def f_df(self, w):
-        s0 = np.zeros(self.n_sources, self.X.values.shape[0])
+        s0 = np.zeros((self.n_sources, self.X.get_value().shape[0]))
         self.Wv.set_value(w.astype('float32'))
-        res = minimize(self.f_dfds_f, s0, jac=True, method='L-BFGS-B',
-                       callback=cb)
+        f_dfds_f_float = lambda x: [r.astype('float64') for r in
+            self.f_dfds_f(x.astype('float32'))]
+        res = minimize(f_dfds_f_float, s0, jac=True, method='L-BFGS-B')
         s = res.x
         val = self.f_dfdw_f(w.astype('float32'), s.astype('float32'))
         return [r.astype('float64') for r in val]
@@ -200,7 +201,7 @@ class SC_Soft(SC_Optimizer):
         X = theano.shared(np.zeros((1, 1), dtype='float32'))
         self.X = X
         Sv = T.vector('S')
-        S = T.reshape(Sv, (X.shape[0], n_sources))
+        S = T.reshape(Sv, (n_sources, X.shape[0]))
         Wv = T.vector('W')
         W  = T.reshape(Wv,(n_sources, n_mixtures))
         epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
@@ -219,27 +220,30 @@ class SC_Soft(SC_Optimizer):
             error = 0.*loss
         if penalty is None:
             penalty = 0.*loss
+        """
         self.callback_f = theano.function(inputs=[Wv],
                                           outputs=[loss, error, penalty, mse])
+        """
 
         Wv = theano.shared(np.zeros(1, dtype='float32'))
-        self.Wv = W
+        self.Wv = Wv
+        W  = T.reshape(self.Wv,(n_sources, n_mixtures))
         epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, S)
-        loss_grad_S = T.grad(error, Sv)
+        loss_grad_S = T.grad(loss, Sv)
         self.f_dfds_f = theano.function(inputs=[Sv], outputs=[loss, loss_grad_S])
 
     def prior_cost(self, S):
         return T.log(T.cosh(S)).mean(axis=1).sum()
 
-    def cost(self, Wn, X, S, **kwargs):
+    def cost(self, W, X, S, **kwargs):
         """
         Create costs and intermediate values from input variables.
         """
-        X_hat = S.dot(X)
-        error = self.reconstruction_cost(Wn, X, S)
+        X_hat = W.T.dot(S)
+        error = self.reconstruction_cost(W, X, S)
         penalty = self.prior_cost(S)
         loss = error + self.lambd * penalty
 
@@ -247,3 +251,28 @@ class SC_Soft(SC_Optimizer):
         X_hat_normed = X_hat/T.sqrt((X_hat**2).sum(axis=0, keepdims=True))
         mse = ((X_normed-X_hat_normed)**2).sum(axis=0).mean()
         return loss, error, penalty, mse, S, X_hat
+
+    def setup_transforms(self, **kwargs):
+        """
+        Create transform_f and reconstruct_f functions.
+        """
+        """
+        X = T.matrix('X')
+        W = T.matrix('W')
+        epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+        W_norm = T.sqrt(epssumsq)
+        Wn = W / W_norm
+        
+        S, X_hat = self.transforms(Wn, X)
+
+        self.transform_f = theano.function(inputs=[X, W], outputs=[S])
+        self.reconstruct_f = theano.function(inputs=[X, W], outputs=[X_hat])
+
+        loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, **kwargs)
+        outputs = [loss, error, penalty, mse]
+        outputs = [o if o is not None else 0.* loss for o in outputs]
+
+        self.losses_f = theano.function(inputs=[X, W],
+                                        outputs=outputs)
+        """
+        pass

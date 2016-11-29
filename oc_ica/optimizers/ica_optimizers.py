@@ -60,7 +60,7 @@ class Optimizer(object):
     Optimizer.
     """
     def __init__(self, prior='soft', verbose=False, **fit_kwargs):
-        assert prior in ['soft', 'hard']
+        #assert prior in ['soft', 'hard']
         self.verbose = verbose
         self.prior = prior
         self.fit_kwargs = fit_kwargs
