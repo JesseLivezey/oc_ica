@@ -154,7 +154,13 @@ fname = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_models-{}.h5'.format(n
                                                                                n_sources, k,
                                                                                '_'.join(A_priors),
                                                                                '_'.join(models))
-with h5py.File(os.path.join(scratch, fname), 'w') as f:
+folder = 'comparison_mixtures-{}_sources-{}'
+try:
+    os.mkdir(os.path.join(scratch, folder))
+except OSError:
+    pass
+
+with h5py.File(os.path.join(scratch, folder, fname), 'w') as f:
     f.create_dataset('A_priors', data=np.array([str(p) for p in A_priors]))
     f.create_dataset('models', data=np.array(models))
     f.create_dataset('lambdas', data=lambdas)
