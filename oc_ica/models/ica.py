@@ -61,7 +61,10 @@ class ICA(BaseEstimator, TransformerMixin):
         else:
             if n_sources > n_mixtures:
                 print('Overcomplete ICA')
-        print('Degeneracy control: {}'.format(degeneracy))
+        if degeneracy == 'Lp':
+            print('Degeneracy control: L{}'.format(p))
+        else:
+            print('Degeneracy control: {}'.format(degeneracy))
 
         self.fit_kwargs = fit_kwargs
 

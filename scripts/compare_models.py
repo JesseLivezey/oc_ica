@@ -105,7 +105,7 @@ else:
     n_mixtures = A_array.shape[-2]
     n_sources = A_array.shape[-1]
     OC = n_sources / n_mixtures
-n_samples = 5 * n_mixtures * n_sources
+n_samples = n_mixtures * n_sources
 
 if generate:
     sys.exit(0)
@@ -137,8 +137,12 @@ for ii, p in enumerate(A_priors):
             else:
                 lambdas_list = lambdas
             for ll, lambd in enumerate(lambdas_list):
-                if model == 'SC':
-                    W = fit_sc_model(n_sources, lambd, X, rng)
+                if model[:2] == 'SC':
+                    if 'SOFT' in model:
+                        kwargs = {'prior': 'soft'}
+                    else:
+                        kwargs = {'prior': 'hard'}
+                    W = fit_sc_model(n_sources, lambd, X, rng, **kwargs)
                     W_fits[ii, kk, ll, jj] = W
                 else:
                     try:
@@ -154,7 +158,7 @@ fname = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_models-{}.h5'.format(n
                                                                                n_sources, k,
                                                                                '_'.join(A_priors),
                                                                                '_'.join(models))
-folder = 'comparison_mixtures-{}_sources-{}'
+folder = 'comparison_mixtures-{}_sources-{}_k-{}'.format(n_mixtures, n_sources, k)
 try:
     os.mkdir(os.path.join(scratch, folder))
 except OSError:
