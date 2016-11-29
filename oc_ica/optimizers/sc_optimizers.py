@@ -183,12 +183,16 @@ class SC_Soft(SC_Optimizer):
     Optimizer.
     """
     def f_df(self, w):
-        s0 = np.zeros((self.n_sources, self.X.get_value().shape[0]))
+        if self.s0 is None:
+            s0 = np.zeros((self.n_sources, self.X.get_value().shape[1]))
+        else:
+            s0 = self.s0
         self.Wv.set_value(w.astype('float32'))
         f_dfds_f_float = lambda x: [r.astype('float64') for r in
             self.f_dfds_f(x.astype('float32'))]
         res = minimize(f_dfds_f_float, s0, jac=True, method='L-BFGS-B')
         s = res.x
+        self.s0 = s
         val = self.f_dfdw_f(w.astype('float32'), s.astype('float32'))
         return [r.astype('float64') for r in val]
 
@@ -196,12 +200,13 @@ class SC_Soft(SC_Optimizer):
         """
         L-BFGS-B Optimization
         """
+        self.s0 = None
         self.n_sources = n_sources
         self.n_mixtures = n_mixtures
         X = theano.shared(np.zeros((1, 1), dtype='float32'))
         self.X = X
         Sv = T.vector('S')
-        S = T.reshape(Sv, (n_sources, X.shape[0]))
+        S = T.reshape(Sv, (n_sources, X.shape[1]))
         Wv = T.vector('W')
         W  = T.reshape(Wv,(n_sources, n_mixtures))
         epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
