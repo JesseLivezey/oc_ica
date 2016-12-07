@@ -25,6 +25,8 @@ reload(ds)
 from oc_ica import gabor_fit as fit
 reload(fit)
 
+model_color = {}
+
 
 def plot_figure1c(save_path=None):
     sin = np.sin
@@ -64,9 +66,9 @@ def plot_figure1c(save_path=None):
     ax2.grid()
     ax4.grid()
 
-    ax2.set_ylim([-.5, 8])
+    ax2.set_ylim([-.5, 8.5])
     ax2.set_yticks(np.linspace(0, 8, 3))
-    ax2.legend(loc='center right')
+    ax2.legend(loc='center right', frameon=False)
     ax2.set_ylabel(r'$L_2$ $e_i$', labelpad=14)
 
     ax4.set_xlim([thetas[0], thetas[-1]])
@@ -81,8 +83,84 @@ def plot_figure1c(save_path=None):
 
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
+    else:
+        plt.show()
 
-    return f
+    return f, ax
+
+def plot_figure2a(save_path=None):
+    """Reproduces figure 2a of the NIPS16 paper
+    Parameters:
+    ----------
+    save_path: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """
+    rng = np.random.RandomState(20161206)
+    overcompleteness = 2
+    n_mixtures = 64
+    n_iter = 10
+    n_sources = n_mixtures*overcompleteness
+    initial_conditions = ['random']
+    degeneracy_controls = ['QUASI-ORTHO', 'L2', 'COHERENCE_SOFT', 'COULOMB',
+                           'RANDOM', 'L4']
+    W = np.full((len(degeneracy_controls), n_iter, n_sources,
+                 n_mixtures), np.nan)
+    W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
+    for ii in range(n_iter):
+        Wp, W_0p = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
+                                          n_sources, n_mixtures, rng=rng)
+        W[:, ii] = Wp[0]
+        W_0[ii] = W_0p
+    costs = ['Quasi-ortho',r'$L_2$', 'Soft Coherence', 'Coulomb',
+             'Rand. prior', r'$L_4$']
+
+    f, ax = plot_angles_1column(W, W_0, costs, density=True)
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
+    else:
+        plt.show()
+    return f, ax
+
+def plot_figure2b(W=None,W_0=None,save_path=None):
+    """Reproduces figure 2b of the NIPS16 paper.
+    Parameters:
+    ----------
+    W     : array, optional
+           Set of basis obtained by optimizing different costs.
+           Dimension: n_costs X n_vectors X n_dims
+    W_0   : array, optional
+           Initial set of basis. 
+           Dimension: n_costs X n_vectors X n_dims
+    save_path: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """
+    rng = np.random.RandomState(20161206)
+    overcompleteness = 2
+    n_mixtures = 64
+    n_iter = 10
+    n_sources = n_mixtures*overcompleteness
+    initial_conditions = ['pathological']
+    degeneracy_controls = ['QUASI-ORTHO', 'L2', 'COHERENCE_SOFT', 'COULOMB',
+                           'RANDOM', 'L4']
+    W = np.full((len(degeneracy_controls), n_iter, n_sources,
+                 n_mixtures), np.nan)
+    W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
+    for ii in range(n_iter):
+        Wp, W_0p = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
+                                          n_sources, n_mixtures, rng=rng)
+        W[:, ii] = Wp[0]
+        W_0[ii] = W_0p
+    costs = ['Quasi-ortho',r'$L_2$', 'Soft Coherence', 'Coulomb',
+             'Rand. prior', r'$L_4$']
+    f, ax = plot_angles_broken_axis(W,W_0,costs,density=True,with_legend=False)
+    if save_path is not None:
+        plt.savefig(save_path,dpi=300)
+    else:
+        plt.show()
+    return f, ax
+
 
 def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
     """
@@ -155,17 +233,22 @@ def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
         plt.savefig(save_path, dpi=300)
     return fig
 
-def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
-                        save_path=None,density=True):
-    """Plots angle distributions of different costs and initial conditions.  
+def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
+                        density=True):
+    """
+    Plots angle distributions of different costs and initial conditions.  
     Parameters:
     ----------
     W     : array
            Set of basis obtained by optimizing different costs.
-           Dimension: n_costs X n_vectors X n_dims
+           Dimension: (n_costs, n_vectors, n_dims)
+           or
+           Dimension: (n_costs, n_iter, n_vectors, n_dims)
     W_0   : array
            Initial set of basis.
-           Dimension: n_costs X n_vectors X n_dims
+           Dimension: (n_costs, n_vectors, n_dims)
+           or
+           Dimension: (n_costs, n_iter, n_vectors, n_dims)
     costs : list or array of strings
            Names of the costs that were evaluated
     cmap  : colormap object, optional
@@ -175,92 +258,69 @@ def plot_angles_1column(W,W_0,costs,cmap=plt.cm.viridis,
     density: boolean, optional
            Use the density
     """
-    col = np.linspace(0,1,W.shape[1]-1)
-    col = np.hstack((np.zeros(1),col))
-    if W.shape[0]>1:
-        figsize=(6,3)
+    n_costs = W.shape[0]
+    col = np.linspace(0, 1, n_costs-1)
+    col = np.hstack((np.zeros(1), col))
+    figsize=(3, 3)
+    f, ax = plt.subplots(1, figsize=figsize)
+
+    for ii, ws in enumerate(W):
+        if ws.ndim  == 2:
+            ws = ws[np.newaxis, ...]
+        angles = np.array([])
+        for wi in ws:
+            angles = np.concatenate((analysis.compute_angles(wi), angles))
+        h, b = np.histogram(angles,np.arange(0,91)) 
+        if density:
+            h = h*1./np.sum(h)
+        b = np.arange(1, 91)
+        ax.plot(b, h, drawstyle='steps-pre', color=cmap(col[ii]),
+                lw=1.5, label=costs[ii])
+
+    if W_0.ndim == 2:
+        W_0 = W_0[np.newaxis, ...]
+
+    angles = np.array([])
+    for wi in W_0:
+        angles = np.concatenate((analysis.compute_angles(wi), angles))
+    h0, b0 = np.histogram(angles, np.arange(0,91))
+    if density:
+        h0 = h0 / np.sum(h0)
+    b0 = np.arange(1, 91)
+    ax.plot(b0, h0, '--', drawstyle='steps-pre', color='r', lw=1)
+    ax.set_yscale('log')
+    ax.set_xlim(0, 90) 
+      
+    if density:
+        ax.set_ylim(1e-4, 1e0)
     else:
-        figsize=(3,3)
-    fig = plt.figure('angle distributions',figsize=figsize)
-    columns = W.shape[0]
-    rows = W.shape[1]
-    count = 1
-    for i in xrange(columns):
-        ax = fig.add_subplot(columns,1,i+1)
-        for j in xrange(rows):
-            count+=1
-            angles = analysis.compute_angles(W[i,j])
-            h,b = np.histogram(angles,np.arange(0,91)) 
-            if density:
-                h = h*1./np.sum(h)
-            b = np.arange(1,91)
-            if j==0:
-                ax.plot(b,h,drawstyle='steps-pre',color='k',
-                    lw=1.5,label=costs[j])
-            else:
-                ax.plot(b,h,drawstyle='steps-pre',color=cmap(col[j]),
-                    lw=1.5,label=costs[j])
+        ax.set_ylim(1e0, 1e4) 
 
-            angles0 = analysis.compute_angles(W_0[i])
-            h0,b0 = np.histogram(angles0,np.arange(0,91))
-            if density:
-                h0 = h0*1./np.sum(h0)
-            b0 = np.arange(1,91)
-            ax.plot(b0,h0,'--',drawstyle='steps-pre',color='r',lw=1)
-            ax.set_yscale('log')
-            ax.set_xlim(0,90) 
-          
-            if density:
-                ax.set_ylim(1e-4,1e0)
-            else:
-                ax.set_ylim(1e0,1e4) 
-
-            if W.shape[0]>1:
-                if j==0:
-                    fig.text(.965,.9-.3*i,initial_conditions[i],
-                            rotation='vertical')
-                if i==0:
-                    ax.legend(loc='upper left',frameon=False,ncol=1)
-                if i==2:
-                    ax.set_xlabel(r'$\theta$')
-                    if density:
-                        ax.set_ylabel('Density')
-                    else:
-                        ax.set_ylabel('Counts')
-                else:
-                    ax.set_yticklabels([])
-                    ax.set_xticklabels([])
-                ax.set_xticks([0,45,90])
-
-            else:
-                ax.legend(loc='upper left',frameon=False,ncol=1)
-                ax.set_xlabel(r'$\theta$',labelpad=-10)
-                if density:
-                    ax.set_ylabel('Density',labelpad=-2)
-                else:
-                    ax.set_ylabel('Counts')
-                ax.set_xlim(45,90)
-                ax.set_xticks([45,90])
-  
-            if density:
-                ax.set_yticks([1e-4,1e-2,1e0])
-            else:
-                ax.set_yticks([1e0,1e2,1e4])
-            
-            ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
-
-    if W.shape[0]>1:
-        fig.subplots_adjust(left=.1, bottom=.1, right=.95, top=.95,
-                  wspace=0.05, hspace=0.05)
+    ax.legend(loc='upper left',frameon=False,ncol=1)
+    ax.set_xlabel(r'$\theta$',labelpad=-10)
+    if density:
+        ax.set_ylabel('Density',labelpad=-2)
     else:
-        fig.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
-                  wspace=0.05, hspace=0.05)
-    if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        plt.show()
+        ax.set_ylabel('Counts')
+    ax.set_xlim(45, 90)
+    ax.set_xticks([45, 90])
 
-def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
+    if density:
+        ax.set_yticks([1e-4, 1e-2, 1e0])
+    else:
+        ax.set_yticks([1e0, 1e2, 1e4])
+    
+    ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+
+    if W.shape[0] > 1:
+        f.subplots_adjust(left=.1, bottom=.1, right=.95, top=.95,
+                          wspace=0.05, hspace=0.05)
+    else:
+        f.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
+                          wspace=0.05, hspace=0.05)
+    return f, ax
+
+def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
                             save_path=None,density=True,with_legend=True):
     """Plots angle distributions of different costs and initial conditions  
     Parameters:
@@ -282,163 +342,101 @@ def plot_angles_broken_axis(W,W_0,costs,cmap=plt.cm.viridis,
     with_legend: boolean, optional
            Add a legend to the plot 
     """
-    col = np.linspace(0,1,W.shape[0]-1)
-    col = np.hstack((np.zeros(1),col))
+    n_costs = W.shape[0]
+    col = np.linspace(0, 1, n_costs-1)
+    col = np.hstack((np.zeros(1), col))
+    figsize=(3, 3)
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
-    fig,(ax, ax2) = plt.subplots(1,2,sharey=True)
-    fig.set_size_inches((3,3))
-
-    for j in xrange(W.shape[0]):
-        angles = analysis.compute_angles(W[j])
-        h,b = np.histogram(angles,np.arange(0,91)) 
+    for ii, ws in enumerate(W):
+        if ws.ndim  == 2:
+            ws = ws[np.newaxis, ...]
+        angles = np.array([])
+        for wi in ws:
+            angles = np.concatenate((analysis.compute_angles(wi), angles))
+        h, b = np.histogram(angles,np.arange(0,91)) 
         if density:
             h = h*1./np.sum(h)
-        n= 45
-        b = np.arange(1,91)
-        if j==0:
-            ax.plot(b[:n],h[:n],drawstyle='steps-pre',
-                color='k',lw=1.5,label=costs[j])
-        
-            ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
-                color='k',lw=1.5,label=costs[j])
-        else:
-            ax.plot(b[:n],h[:n],drawstyle='steps-pre',
-                color=cmap(col[j]),lw=1.5,label=costs[j])
-        
-            ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
-                color=cmap(col[j]),lw=1.5,label=costs[j])
+        b = np.arange(1, 91)
 
-        angles0 = analysis.compute_angles(W_0)
-        h0,b0 = np.histogram(angles0,np.arange(0,91))
-        if density:
-            h0 = h0*1./np.sum(h0)
+        ax1.plot(b[:n],h[:n],drawstyle='steps-pre',
+            color=cmap(col[ii]),lw=1.5,label=costs[ii])
+    
+        ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
+            color=cmap(col[ii]),lw=1.5,label=costs[ii])
 
-        b0 = np.arange(1,91)
-        ax.plot(b0[:n],h0[:n],'--',drawstyle='steps-pre',color='r',lw=1)
-        ax2.plot(b0[n:],h0[n:],'--',drawstyle='steps-pre',color='r',lw=1)
+    angles = np.array([])
+    for wi in W_0:
+        angles = np.concatenate((analysis.compute_angles(wi), angles))
+    h0, b0 = np.histogram(angles, np.arange(0,91))
+    if density:
+        h0 = h0 / np.sum(h0)
+    b0 = np.arange(1, 91)
+    ax1.plot(b0[:n],h0[:n],'--',drawstyle='steps-pre',color='r',lw=1)
+    ax2.plot(b0[n:],h0[n:],'--',drawstyle='steps-pre',color='r',lw=1)
 
-        # hide the spines between ax and ax2
-        ax.spines['right'].set_visible(False)
-        ax2.spines['left'].set_visible(False)
-        ax2.yaxis.tick_right()
-        ax2.tick_params(labelright='off')
-        ax.yaxis.tick_left()
-        
-        ax.set_yscale('log')
-        ax.set_xlim(0,90) 
+    # hide the spines between ax and ax2
+    ax1.spines['right'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+    ax2.yaxis.tick_right()
+    ax2.tick_params(labelright='off')
+    ax1.yaxis.tick_left()
+    
+    ax1.set_yscale('log')
+    ax1.set_xlim(0,90) 
 
-        ax2.set_yscale('log')
-        ax2.set_xlim(0,90) 
-        
-        if density:
-            ax.set_ylim(1e-4,1e0)
-        else:
-            ax.set_ylim(1e0,1e4) 
+    ax2.set_yscale('log')
+    ax2.set_xlim(0,90) 
+    
+    if density:
+        ax1.set_ylim(1e-4,1e0)
+    else:
+        ax1.set_ylim(1e0,1e4) 
 
-        if with_legend:
-            ax.legend(loc='upper left', frameon=False,ncol=1)
+    if with_legend:
+        ax1.legend(loc='upper left', frameon=False,ncol=1)
 
-        if density:
-            ax.set_ylabel('Density',labelpad=-2)
-        else:
-            ax.set_ylabel('Counts')
+    if density:
+        ax1.set_ylabel('Density',labelpad=-2)
+    else:
+        ax1.set_ylabel('Counts')
 
-        ax.set_xlim(0,11)
-        ax.set_xticks([0,10])
+    ax1.set_xlim(0,11)
+    ax1.set_xticks([0,10])
 
-        if density:
-            ax.set_yticks([1e-4,1e-2,1e0])
-        else:
-            ax.set_yticks([1e0,1e2,1e4])
+    if density:
+        ax1.set_yticks([1e-4,1e-2,1e0])
+    else:
+        ax1.set_yticks([1e0,1e2,1e4])
 
-        ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+    ax1.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
-        ax2.set_xlim(80,90)
-        ax2.set_xticks([81,90])
-     
-        if density:
-            ax2.set_yticks([1e-4,1e-2,1e0])
-        else:
-            ax2.set_yticks([1e0,1e2,1e4])
+    ax2.set_xlim(80,90)
+    ax2.set_xticks([81,90])
+ 
+    if density:
+        ax2.set_yticks([1e-4,1e-2,1e0])
+    else:
+        ax2.set_yticks([1e0,1e2,1e4])
 
-        ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+    ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
     d = .015  # how big to make the diagonal lines in axes coordinates
     # arguments to pass plot, just so we don't keep repeating them
-    kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
-    ax.plot((1-d, 1+d), (1-d, 1+d), **kwargs)        # top-left diagonal
-    ax.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+    ax1.plot((1-d, 1+d), (1-d, 1+d), **kwargs)        # top-left diagonal
+    ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
 
     kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
     ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
     ax2.plot((-d, + d), ( -d, + d), **kwargs)  # bottom-right diagonal
     
-    fig.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
+    f.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
               wspace=0.05, hspace=0.05)
 
-    fig.text(.525,.0125,r'$\theta$',fontsize=14)
-    if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        plt.show()
+    f.text(.525,.0125,r'$\theta$',fontsize=14)
+    return f, (ax1, ax2)
 
-def plot_figure2b(W=None,W_0=None,save_path=None):
-    """Reproduces figure 2b of the NIPS16 paper.
-    Parameters:
-    ----------
-    W     : array, optional
-           Set of basis obtained by optimizing different costs.
-           Dimension: n_costs X n_vectors X n_dims
-    W_0   : array, optional
-           Initial set of basis. 
-           Dimension: n_costs X n_vectors X n_dims
-    save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
-    """
-    overcompleteness = 2
-    n_mixtures = 64
-    n_sources = n_mixtures*overcompleteness
-    initial_conditions = ['random','pathological']
-    degeneracy_controls = ['QUASI-ORTHO','L2','COULOMB','RANDOM','L4']
-    if W is None and W_0 is None:
-        W, W_0 = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
-                                     n_sources, n_mixtures)
-    costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
-    plot_angles_broken_axis(W[1],W_0[1],costs,density=True,with_legend=False)
-    if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        plt.show()
-
-def plot_figure2a(W=None,W_0=None,save_path=None):
-    """Reproduces figure 2a of the NIPS16 paper
-    Parameters:
-    ----------
-    W     : array, optional
-           Set of basis obtained by optimizing different costs.
-           Dimension: n_costs X n_vectors X n_dims
-    W_0   : array, optional
-           Initial set of basis.
-           Dimension: n_costs X n_vectors X n_dims
-    save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
-    """
-    overcompleteness = 2
-    n_mixtures = 64
-    n_sources = n_mixtures*overcompleteness
-    initial_conditions = ['random','pathological']
-    degeneracy_controls = ['QUASI-ORTHO','L2','COULOMB','RANDOM','L4']
-    if W is None and W_0 is None:
-        W, W_0 = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
-                                     n_sources, n_mixtures)
-    costs = ['Quasi-ortho',r'$L_2$', 'Coulomb', 'Rand. prior', r'$L_4$']
-    plot_angles_1column(W[0][np.newaxis,...],W_0,costs,density=True)
-    if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        plt.show()
 
 def plot_bases(bases,save_path=None,ax=None,figname='bases'):
     """PLots a set of  bases. (Reproduces figure 3b of the NIPS16 paper.)
