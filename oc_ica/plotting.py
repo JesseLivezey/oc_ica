@@ -67,8 +67,8 @@ def plot_figure1c(save_path=None):
     ax4.grid()
 
     ax2.set_ylim([-.5, 8.5])
-    ax2.set_yticks(np.linspace(0, 8, 3))
-    ax2.legend(loc='center right', frameon=False)
+    ax2.set_yticks(np.linspace(0, 8, 2))
+    leg = ax2.legend(loc='center right')
     ax2.set_ylabel(r'$L_2$ $e_i$', labelpad=14)
 
     ax4.set_xlim([thetas[0], thetas[-1]])
@@ -86,7 +86,7 @@ def plot_figure1c(save_path=None):
     else:
         plt.show()
 
-    return f, ax
+    return f, (ax2, ax4)
 
 def plot_figure2a(save_path=None):
     """Reproduces figure 2a of the NIPS16 paper
@@ -122,7 +122,7 @@ def plot_figure2a(save_path=None):
         plt.show()
     return f, ax
 
-def plot_figure2b(W=None,W_0=None,save_path=None):
+def plot_figure2b(save_path=None):
     """Reproduces figure 2b of the NIPS16 paper.
     Parameters:
     ----------
