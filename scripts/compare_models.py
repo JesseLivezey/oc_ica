@@ -137,7 +137,7 @@ for ii, p in enumerate(A_priors):
             else:
                 lambdas_list = lambdas
             for ll, lambd in enumerate(lambdas_list):
-                if model[:2] == 'SC':
+                if isinstance(model, str) and model[:2] == 'SC':
                     if 'SOFT' in model:
                         kwargs = {'prior': 'soft'}
                     else:

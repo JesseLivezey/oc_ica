@@ -154,10 +154,10 @@ class Optimizer(object):
         elif degeneracy == 'COHERENCE':
             error = abs(gram_diff).max()
         elif degeneracy == 'SM':
-            ts = T.tanh(s)
+            ts = T.tanh(S)
             score = Wn.T.dot(ts)
             dscore = (Wn**2).T.dot(1.-ts**2)
-            error = (dscore.sum(axis=0) + .5(score**2).sum(axis=0)).mean()
+            error = (dscore.sum(axis=0) + .5*(score**2).sum(axis=0)).mean()
         elif degeneracy is None:
             error = None
         else:
