@@ -274,7 +274,11 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         if density:
             h = h*1./np.sum(h)
         b = np.arange(1, 91)
-        ax.plot(b, h, drawstyle='steps-pre', color=cmap(col[ii]),
+        if ii == 0:
+            c = 'black'
+        else:
+            c = cmap(col[ii])
+        ax.plot(b, h, drawstyle='steps-pre', color=c,
                 lw=1.5, label=costs[ii])
 
     if W_0.ndim == 2:
@@ -358,12 +362,16 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
         if density:
             h = h*1./np.sum(h)
         b = np.arange(1, 91)
+        if ii == 0:
+            c = 'black'
+        else:
+            c = cmap(col[ii])
 
         ax1.plot(b[:n],h[:n],drawstyle='steps-pre',
-            color=cmap(col[ii]),lw=1.5,label=costs[ii])
+            color=c,lw=1.5,label=costs[ii])
     
         ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
-            color=cmap(col[ii]),lw=1.5,label=costs[ii])
+            color=c,lw=1.5,label=costs[ii])
 
     angles = np.array([])
     for wi in W_0:
@@ -411,8 +419,8 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
 
     ax1.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
-    ax2.set_xlim(80,90)
-    ax2.set_xticks([81,90])
+    ax2.set_xlim(79,90)
+    ax2.set_xticks([80,90])
  
     if density:
         ax2.set_yticks([1e-4,1e-2,1e0])
