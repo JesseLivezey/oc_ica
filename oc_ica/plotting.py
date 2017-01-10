@@ -446,7 +446,7 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
     return f, (ax1, ax2)
 
 
-def plot_bases(bases,save_path=None,ax=None,figname='bases'):
+def plot_bases(bases, save_path=None, scale_rows=True):
     """PLots a set of  bases. (Reproduces figure 3b of the NIPS16 paper.)
     Parameters:
     ----------
@@ -463,19 +463,17 @@ def plot_bases(bases,save_path=None,ax=None,figname='bases'):
     """
     n_pixels = int(np.sqrt(bases.shape[1]))
     n_bases  = int(np.sqrt(bases.shape[0]))
-    if ax is None:
-        fig = plt.figure(figname)
-        fig.clf()
-        ax = plt.axes()
+    f, ax = plt.subplots(1)
     im = tri(bases,(n_pixels,n_pixels),(n_bases,n_bases),
-                (2,2), scale_rows_to_unit_interval=False,
+                (2,2), scale_rows_to_unit_interval=scale_rows,
                 output_pixel_vals=False)
-    ax.imshow(im,aspect='auto',interpolation='nearest',cmap='gray')
+    ax.imshow(im,aspect='auto', interpolation='nearest', cmap='gray')
     ax.set_axis_off()
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
         plt.show()
+    return f, ax
 
 def plot_figure3a(angles,labels,density=True,\
                    save_path=None,ax=None):

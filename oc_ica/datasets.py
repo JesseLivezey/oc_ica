@@ -2,7 +2,6 @@ from __future__ import division
 import os, h5py
 from h5py import File
 import numpy as np
-from numpy.linalg import *
 from random import sample
 
 from scipy.io import loadmat
@@ -15,11 +14,16 @@ import theano
 import theano.tensor as T
 
 
-def decorrelate(X):
-    d, u = eig(np.cov(X))
-    K = np.sqrt(inv(np.diag(d))).dot(u.T)
-    X_zca = u.dot(K).dot(X)
-    return X_zca
+def zca(X):
+    d, u = np.linalg.eig(np.cov(X))
+    M = u.dot(np.diag(np.sqrt(1./d)).dot(u.T))
+    X_zca = M.dot(X)
+    print u.dot(np.diag(np.sqrt(d)).dot(u.T)).dot(M)
+    return X_zca, d, u
+
+def inverse_zca(X, d, u):
+    iM = u.dot(np.diag(np.sqrt(d)).dot(u.T))
+    return iM.dot(X)
 
 def generate_k_sparse(A, k, n_samples, rng, lambd=1.):
     _, source_dim = A.shape
