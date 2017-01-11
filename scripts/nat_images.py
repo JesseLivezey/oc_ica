@@ -29,7 +29,10 @@ n_mixtures = patch_size**2
 n_sources = int(float(OC) * n_mixtures)
 total_samples = n_mixtures * n_sources
 rng = np.random.RandomState(20170110)
-sparsity = 37.
+if n_mixtures == 64 and n_sources == 128:
+    sparsity = 37.
+else:
+    raise ValueError
 
 def fit_ica_model(model, n_sources, X, sparsity, rng, **kwargs):
     dim_input = X.shape[0]
@@ -46,11 +49,10 @@ def fit_ica_model(model, n_sources, X, sparsity, rng, **kwargs):
     kwargs['degeneracy'] = model
     kwargs['rng'] = rng
     kwargs['n_sources'] = n_sources
-    kwargs['n_iter'] = 3
     return sparsity_search(ica.ICA, sparsity, X, **kwargs)
 
 
-filename = os.path.join(os.environ['HOME'],'Development/data/vanhateren/images_curated.h5')
+filename = os.path.join(os.environ['SCRATCH'],'data/vanhateren/images_curated.h5')
 key = 'van_hateren_good'
 with h5py.File(filename,'r') as f:
     images = f[key].value
@@ -84,6 +86,6 @@ except OSError:
     pass
 
 with h5py.File(os.path.join(scratch, folder, fname), 'w') as f:
-    f.create_dastaset('W_fits', data=W_fits)
-    f.create_dastaset('lambdas', data=lambdas)
-    f.create_dastaset('sparsities', data=sparsities)
+    f.create_dataset('W_fits', data=W_fits)
+    f.create_dataset('lambdas', data=lambdas)
+    f.create_dataset('sparsities', data=sparsities)
