@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-import h5py, os
+import argparse, h5py, os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction import image
@@ -13,15 +13,42 @@ reload(sc)
 reload(ica)
 
 
-patch_size = 16
-overcompleteness = 2
-degeneracy= 'Lp'
-p=2
-lambd = 10.
+parser = argparse.ArgumentParser(description='Fit models to natural images')
+parser.add_argument('--patch_size', '-p', type=int, default=None)
+parser.add_argument('--oc', '-o', type=float, default=None)
+parser.add_argument('--models', '-m', type=str, default=None, nargs='+')
+args = parser.parse_args()
+
+patch_size = args.patch_size
+OC = args.oc
+models = args.models
+
+scratch = os.getenv('SCRATCH', '')
 
 n_mixtures = patch_size**2           
-n_sources = n_mixtures * overcompleteness
+n_sources = int(float(OC) * n_mixtures)
 total_samples = n_mixtures * n_sources
+rng = np.random.RandomState(20170110)
+sparsity = 37.
+
+def fit_ica_model(model, n_sources, X, sparsity, rng, **kwargs):
+    dim_input = X.shape[0]
+    try:
+        model = int(model)
+    except ValueError:
+        pass
+    if isinstance(model, int):
+        p = model
+        model='Lp'
+    else:
+        p = None
+    kwargs['p'] = p
+    kwargs['degeneracy'] = model
+    kwargs['rng'] = rng
+    kwargs['n_sources'] = n_sources
+    kwargs['n_iter'] = 3
+    return sparsity_search(ica.ICA, sparsity, X, **kwargs)
+
 
 filename = os.path.join(os.environ['HOME'],'Development/data/vanhateren/images_curated.h5')
 key = 'van_hateren_good'
@@ -36,23 +63,27 @@ X_mean = X.mean(axis=-1, keepdims=True)
 X -= X_mean
 X_zca, d, u = zca(X)
 
-Xp = inverse_zca(X, d, u)
-print(np.allclose(X, Xp))
-print(X-Xp)
+W_fits = np.full((len(models), n_sources, n_mixtures), np.nan)
+lambdas = np.full((len(models),), np.nan)
+sparsities = np.full((len(models),), np.nan)
 
-print('creating model')
-model, lambd, p = sparsity_search(ica.ICA, 150., X_zca,
-        degeneracy=degeneracy, p=p, n_sources=n_sources)
-print(lambd)
-"""
-model = ica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
-                degeneracy=degeneracy_control,p=p)
+for ii, m in enumerate(models):
+    model, lambd, p = fit_ica_model(m, n_sources, X_zca, sparsity, rng)
+    W_fits[ii] = model.components_
+    lambdas[ii] = lambd
+    sparsities[ii] = p
 
-print('fitting')
-model.fit(X_zca)
-"""
-print(model.losses(X_zca))
-bases = model.components_
-plot_bases(bases)
-bases = inverse_zca(bases.T, d, u).T
-plot_bases(bases)
+fname = 'nat_images_mixtures-{}_sources-{}_models-{}.h5'.format(n_mixtures,
+                                                                n_sources,
+                                                                '_'.join(models))
+folder = 'nat_images_mixtures-{}_sources-{}'.format(n_mixtures, n_sources)
+
+try:
+    os.mkdir(os.path.join(scratch, folder))
+except OSError:
+    pass
+
+with h5py.File(os.path.join(scratch, folder, fname), 'w') as f:
+    f.create_dastaset('W_fits', data=W_fits)
+    f.create_dastaset('lambdas', data=lambdas)
+    f.create_dastaset('sparsities', data=sparsities)

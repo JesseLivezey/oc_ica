@@ -60,6 +60,10 @@ lambdas = np.logspace(lambda_min, lambda_max, num=n_lambda)
 
 def fit_ica_model(model, dim_sparse, lambd, X, rng, **kwargs):
     dim_input = X.shape[0]
+    try:
+        model = int(model)
+    except ValueError:
+        pass
     if isinstance(model, int):
         p = model
         model='Lp'
@@ -145,10 +149,6 @@ for ii, p in enumerate(A_priors):
                     W = fit_sc_model(n_sources, lambd, X, rng, **kwargs)
                     W_fits[ii, kk, ll, jj] = W
                 else:
-                    try:
-                        model = int(model)
-                    except ValueError:
-                        pass
                     W = fit_ica_model(model, n_sources, lambd, X, rng)
                     W_fits[ii, kk, ll, jj] = W
 

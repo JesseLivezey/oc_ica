@@ -161,6 +161,7 @@ class Optimizer(object):
         elif degeneracy is None:
             error = None
         else:
+            print(degeneracy)
             raise ValueError
 
         if ((degeneracy is not None) and

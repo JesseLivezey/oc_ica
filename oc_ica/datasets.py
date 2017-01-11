@@ -18,7 +18,6 @@ def zca(X):
     d, u = np.linalg.eig(np.cov(X))
     M = u.dot(np.diag(np.sqrt(1./d)).dot(u.T))
     X_zca = M.dot(X)
-    print u.dot(np.diag(np.sqrt(d)).dot(u.T)).dot(M)
     return X_zca, d, u
 
 def inverse_zca(X, d, u):
