@@ -31,6 +31,8 @@ total_samples = n_mixtures * n_sources
 rng = np.random.RandomState(20170110)
 if n_mixtures == 64 and n_sources == 128:
     sparsity = 37.
+elif n_mixtures == 256 and n_sources == 512:
+    sparsity = 150.
 else:
     raise ValueError
 

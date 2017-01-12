@@ -611,9 +611,10 @@ def get_Gabor_params(bases):
         params.append(fitter.fit(w))
     return params
 
-def plot_GaborFit_xy(params,color=.5,save_path=None,
+def plot_GaborFit_xy(params, color=.5, save_path=None,
                      ax=None, figsize=None):
-    """Plot Gabor parameters using a "confetti plot": 
+    """
+    Plot Gabor parameters using a "confetti plot": 
        - position of rectangle:  position of Gabor
        - width,height of rectangle:  variance of envelope 
        - angle of the rectangle: orientation of the Gabor
