@@ -209,7 +209,7 @@ class GaborFit(object):
         self._make_phase = theano.function([params_s, n_x_s, n_y_s], phase)
         self._make_envelope = theano.function([params_s, n_x_s, n_y_s], envelope)
 
-    def fit(self, X,var_init=.05):
+    def fit(self, X, var_init=.05):
         # Calculate different versions of the data
         n_x, n_y, n_samples = X.shape
         init = np.zeros(7*n_samples)
@@ -280,7 +280,7 @@ class GaborFit(object):
                     se = func_se(params)
                     best_se, best_params = choose_best(best_se, best_params, se, params)
                     x.append(best_params)
-                print theta, k, se.mean(), best_se.mean()
+                #print theta, k, se.mean(), best_se.mean()
 
         # Fit envelope widths
         func = self._fit_lvx_lvy

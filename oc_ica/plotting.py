@@ -5,6 +5,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import matplotlib.patches as mpatches
+from matplotlib.transforms import Affine2D
+from matplotlib.projections import PolarAxes
+from mpl_toolkits.axisartist import angle_helper
+from mpl_toolkits.axisartist.grid_finder import MaxNLocator
+from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
+
 
 mpl.rcParams['xtick.labelsize'] = 10
 mpl.rcParams['ytick.labelsize'] = 10
@@ -14,7 +20,6 @@ mpl.rcParams['legend.fontsize'] = 10
 from oc_ica import utils
 reload(utils)
 from oc_ica.utils import tile_raster_images as tri
-from oc_ica.utils import fractional_polar_axes as polar
 from oc_ica import analysis
 reload(analysis)
 
@@ -563,55 +568,92 @@ def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     else:
         plt.show()
 
-def learn_bases(X, costs=['L2','COULOMB','RANDOM','L4'],oc=4,lambd=10.):
-    """Learn ICA bases for a given set of non-degeneracy costsi
-    Parameters:
-    ----------
-    X     : array
-           Whiten data. Dimension: n_samples X n_features
-    K     : array
-           Whitening matrix. 
-    oc    : int, optional
-           Overcompleteness 
-    lambd : float, optional
-           Sparsity
+
+def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .5),
+                          thlabel=r'$\theta$', rlabel='frequency', ticklabels=True):
     """
-    n_mixtures = X.shape[0]
-    n_sources  = n_mixtures*oc
-    bases = np.zeros((len(costs),n_sources,n_mixtures))
-    f = h5py.File('bases_oc_%i_lambda_%.1f.h5'%(oc,lambd))
-    try:
-        keys = f.keys()
-    except:
-        keys = []
-    for i in xrange(len(costs)):
-        if costs[i] not in keys:
-            ica = ocica.ICA(n_mixtures=n_mixtures,n_sources=n_sources,lambd=lambd,
-                        degeneracy=costs[i])
-            ica.fit(X)
-            bases[i] = ica.components_
-            f.create_dataset(name=costs[i],data=bases[i])
+    Return polar axes that adhere to desired theta (in deg) and r limits. steps for theta
+    and r are really just hints for the locators. Using negative values for rlim causes
+    problems for GridHelperCurveLinear for some reason
+    """
+    th0, th1 = thlim # deg
+    r0, r1 = rlim
+    thstep, rstep = step
+
+    # scale degrees to radians:
+    tr_scale = Affine2D().scale(np.pi/180., 1.)
+    tr = tr_scale + PolarAxes.PolarTransform()
+    theta_grid_locator = angle_helper.LocatorDMS((th1-th0) // thstep)
+    r_grid_locator = MaxNLocator((r1-r0) // rstep)
+    theta_tick_formatter = angle_helper.FormatterDMS()
+    grid_helper = GridHelperCurveLinear(tr,
+                                        extremes=(th0, th1, r0, r1),
+                                        grid_locator1=theta_grid_locator,
+                                        grid_locator2=r_grid_locator,
+                                        tick_formatter1=theta_tick_formatter,
+                                        tick_formatter2=None)
+
+    a = FloatingSubplot(f, 111, grid_helper=grid_helper)
+    f.add_subplot(a)
+
+    # adjust x axis (theta):
+    a.axis["bottom"].set_visible(False)
+    a.axis["top"].set_axis_direction("bottom") # tick direction
+    a.axis["top"].toggle(ticklabels=ticklabels, label=bool(thlabel))
+    a.axis["top"].major_ticklabels.set_axis_direction("top")
+    a.axis["top"].label.set_axis_direction("top")
+
+    # adjust y axis (r):
+    a.axis["left"].set_axis_direction("bottom") # tick direction
+    a.axis["right"].set_axis_direction("top") # tick direction
+    a.axis["left"].toggle(ticklabels=ticklabels, label=bool(rlabel))
+
+    # add labels:
+    a.axis["top"].label.set_text(thlabel)
+    a.axis["left"].label.set_text(rlabel)
+
+    # create a parasite axes whose transData is theta, r:
+    auxa = a.get_aux_axes(tr)
+    # make aux_ax to have a clip path as in a?:
+    auxa.patch = a.patch 
+    # this has a side effect that the patch is drawn twice, and possibly over some other
+    # artists. So, we decrease the zorder a bit to prevent this:
+    a.patch.zorder = -2
+
+    # add sector lines for both dimensions:
+    thticks = grid_helper.grid_info['lon_info'][0]
+    rticks = grid_helper.grid_info['lat_info'][0]
+    for th in thticks[1:-1]: # all but the first and last
+        auxa.plot([th, th], [r0, r1], '--', c='grey', zorder=-1)
+    for ri, r in enumerate(rticks):
+        # plot first r line as axes border in solid black only if it isn't at r=0
+        if ri == 0 and r != 0:
+            ls, lw, color = 'solid', 2, 'black'
         else:
-            continue
-    return bases
+            ls, lw, color = 'dashed', 1, 'grey'
+
+        auxa.add_artist(plt.Circle([0, 0], radius=r, ls=ls, lw=lw, color=color, fill=False,
+                        transform=auxa.transData._b, zorder=-1))
+    return auxa
 
 def get_Gabor_params(bases):
     """Fit Gabor funcions to a set of basis
     bases: array
            ICA bases. Dimension: n_costs X n_sources X n_mixtures
     """
-    if len(bases.shape)==2:
+    if bases.ndim == 2:
         bases = bases[np.newaxis,...]
     params = []
-    for i in xrange(bases.shape[0]):
-        fitter = fit.GaborFit()
-        n_sources,n_mixtures = bases[i].shape
-        l = np.sqrt(n_mixtures)
-        w = bases[i].reshape((n_sources,l,l)).T
+    fitter = fit.GaborFit()
+    for ii, w  in enumerate(bases):
+        n_sources, n_mixtures = w.shape
+        l = int(np.around(np.sqrt(n_mixtures)))
+        w = w.reshape((n_sources, l, l)).T
         params.append(fitter.fit(w))
     return params
 
-def plot_GaborFit_xy(params, color=.5, save_path=None,
+def plot_GaborFit_xy(params, n_pixels, color=.5,
+                     save_path=None,
                      ax=None, figsize=None):
     """
     Plot Gabor parameters using a "confetti plot": 
@@ -634,27 +676,30 @@ def plot_GaborFit_xy(params, color=.5, save_path=None,
     if figsize is None:
         figsize = (2,2)
     if ax is None:
-        fig = plt.figure('xy',figsize=figsize)   
+        fig = plt.figure('xy', figsize=figsize)   
         fig.clf()
         ax = plt.axes([.15,.15,.8,.8])
-    freq = params[4]
-    indices = np.where(freq>1)[0]
     max_vx = np.max(params[5])
     max_vy = np.max(params[6])
-    for i in indices:
-        x = params[0][i]
-        y = params[1][i]
-        theta = params[2][i]/np.pi*180
-        varx  = params[5][i]/max_vx
-        vary  = params[6][i]/max_vy
-        ax.add_patch(plt.Rectangle((x,y),width=varx,
-                                   height=vary,angle=theta,
-                                   facecolor=color,edgecolor=color,
-                                   alpha=.8))
-    ax.set_xlim(1,6)
-    ax.set_ylim(1,6)
-    ax.set_xlabel('x-position',fontsize=14)
-    ax.set_ylabel('y-position',fontsize=14)
+    xs = params[0]
+    ys = params[1]
+    for ii in range(params[0].size):
+        x = xs[ii]
+        y = ys[ii]
+        theta = params[2][ii]/np.pi*180
+        varx  = params[5][ii]/max_vx
+        vary  = params[6][ii]/max_vy
+        ax.add_patch(plt.Rectangle((x,y),
+                                   width=varx,
+                                   height=vary,
+                                   angle=theta,
+                                   facecolor=color,
+                                   edgecolor=color,
+                                   alpha=.6))
+    ax.set_xlim(1, n_pixels-2)
+    ax.set_ylim(1, n_pixels-2)
+    ax.set_xlabel('x-position', fontsize=14)
+    ax.set_ylabel('y-position', fontsize=14)
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
@@ -682,16 +727,24 @@ def plot_GaborFit_polar(params,color=.5,save_path=None,
         figsize = (2,2)
     fig = plt.figure('polar',figsize=figsize)
     fig.clf()
-    ax = polar(fig)
-    freq = params[4]/np.max(params[4])
-    theta = params[2]/np.pi*180
-    ax.plot(theta,freq,'.',color=color,ms=5,mew=1)
+    freq = params[4] / (2. * np.pi)
+    theta = params[2]/np.pi*180 % 180
+    max_vx = np.max(params[5])/50.
+    max_vy = np.max(params[6])/50.
+    ax = fractional_polar_axes(fig, rlim=(0, 1.5))
+    ii = freq.argmax()
+    print(freq[ii], theta[ii])
+    ax.plot(theta, freq, 'o',
+            markerfacecolor=color,
+            markeredgecolor=color,
+            alpha=.6,
+            ms=5, mew=1)
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
-        plt.show()
+        pass#plt.show()
 
-def plot_GaborFit_envelope(params,color=.5,save_path=None,
+def plot_GaborFit_envelope(params, color=.5, save_path=None,
                            ax=None, figsize=None):
     """Plot Gabor parameters using a scatter plot: 
        - position of circles: size of the evelope (varx,vary) 
@@ -712,25 +765,25 @@ def plot_GaborFit_envelope(params,color=.5,save_path=None,
     if figsize is None:
         figsize = (2,2)
     if ax is None:
-        fig = plt.figure('polar',figsize=figsize)
+        fig = plt.figure('envelope',figsize=figsize)
         fig.clf()
         ax = plt.axes([.15,.15,.8,.8])
-    max_vx = np.max(params[1][5])*5
-    max_vy = np.max(params[1][6])*5
-    freq = params[1][4]
-    indices = np.where(freq>1)[0]
-    freq /= np.max(freq)/200.
-    for i in indices:
-        varx  = params[1][5][i]/max_vx
-        vary  = params[1][6][i]/max_vy
-        ax.add_patch(plt.Circle((varx,vary),radius=freq[i],
-                                   facecolor=color,edgecolor=color,
-                                   alpha=.8))
-    ax.set_xlim(.0,.2)
-    ax.set_ylim(.0,.2)
-    ax.set_xlabel(r'var[$\parallel$]')
-    ax.set_ylabel(r'var[$\perp$]')
+    varxs  = params[5]
+    varys  = params[6]
+    freq = 5. * params[4] / (2. * np.pi)
+    for ii in range(len(varxs)):
+        varx  = varxs[ii]
+        vary  = varys[ii]
+        plt.plot(varx, vary, 'o', ms=freq[ii], mew=1,
+                 color=color, alpha=.6)
+    ax.set_xlim(1e-1,1e1)
+    ax.set_ylim(1e-1,1e1)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    ax.set_xlabel(r'var[$\parallel$]', fontsize=14)
+    ax.set_ylabel(r'var[$\perp$]', fontsize=14)
+    ax.minorticks_off()
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
-        plt.show()
+        pass#plt.show()
