@@ -238,6 +238,92 @@ def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
         plt.savefig(save_path, dpi=300)
     return fig
 
+
+def plot_derivative_ratio(eps=1e-2, save_path=None):
+    """
+    Reproduces the panels c and d of figure 2 in the NIPS16 paper
+
+    Parameters
+    ----------
+    panel: string, optional
+         Which panel, options: 'c', 'd' 
+    save_path: string, optional
+         figure_path+figure_name+.format to store the figure. 
+         If figure is stored, it is not displayed.   
+    """
+    formatter = mpl.ticker.StrMethodFormatter('{x:.2g}')
+    fig = plt.figure('costs',figsize=(3,3))
+    fig.clf()
+    ax = plt.axes([.16,.15,.8,.81])
+    costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
+    col = np.linspace(0,1,len(costs))
+    xx = np.linspace(.01, .17, 100)
+    fun = [lambda x: x,
+           lambda x: x/(1.+eps-x**2)**(3/2),
+           lambda x: (2*x)/(1.+eps-x**2),
+           lambda x: x**3] 
+
+    for i in xrange(4):
+        print(fun[i](xx)/fun[i](np.zeros_like(xx)+.01))
+        ax.semilogy(xx, fun[i](xx)/fun[i](np.zeros_like(xx)+.01), color=cm.viridis(col[i]),
+                    lw=2, label=costs[i])
+
+    ax.spines['left'].set_position('zero')
+    ax.spines['right'].set_color('none')
+    ax.spines['bottom'].set_position('zero')
+    ax.spines['top'].set_color('none')
+
+    """
+    ax.set_ylim(-.1,.1)
+    ax.set_xticks(np.arange(-.15,.16,.15))
+    ax.xaxis.set_major_formatter(formatter)
+    ax.set_yticks(np.arange(-.1,.11,.05))
+    ax.yaxis.set_major_formatter(formatter)
+    ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=65)#20)
+    ax.set_xlabel(r'$\cos\,\theta$',labelpad=80)#180)
+    """
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
+    else:
+        plt.show()
+    return fig
+
+def plot_figure_flat(save_path=None):
+    """Reproduces figure 2a of the NIPS16 paper
+    Parameters:
+    ----------
+    save_path: string, optional
+           Figure_path+figure_name+.format to store the figure. 
+           If figure is stored, it is not displayed.   
+    """
+    rng = np.random.RandomState(20161206)
+    overcompleteness = 2
+    n_mixtures = 64
+    n_iter = 10
+    n_sources = n_mixtures*overcompleteness
+    initial_conditions = ['random']
+    degeneracy_controls = ['COULOMB',
+                           'RANDOM', 'COULOMB_F', 'RANDOM_F', 'L4']
+    W = np.full((len(degeneracy_controls), n_iter, n_sources,
+                 n_mixtures), np.nan)
+    W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
+    for ii in range(n_iter):
+        Wp, W_0p = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
+                                          n_sources, n_mixtures, rng=rng)
+        W[:, ii] = Wp[0]
+        W_0[ii] = W_0p
+    costs = ['Coulomb',
+             'Rand. prior', 'Flat Coulomb', 'Flat Rand. Prior', 'L4']
+
+    f, ax = plot_angles_1column(W, W_0, costs, density=True)
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
+    else:
+        plt.show()
+    return f, ax
+
+
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
                         density=True):
     """
@@ -476,8 +562,6 @@ def plot_bases(bases, save_path=None, scale_rows=True):
     ax.set_axis_off()
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
-    else:
-        plt.show()
     return f, ax
 
 def plot_figure3a(angles,labels,density=True,\
@@ -729,16 +813,15 @@ def plot_GaborFit_polar(params,color=.5,save_path=None,
     fig.clf()
     freq = params[4] / (2. * np.pi)
     theta = params[2]/np.pi*180 % 180
-    max_vx = np.max(params[5])/50.
-    max_vy = np.max(params[6])/50.
+    vx = params[5]
+    vy = params[6]
     ax = fractional_polar_axes(fig, rlim=(0, 1.5))
-    ii = freq.argmax()
-    print(freq[ii], theta[ii])
-    ax.plot(theta, freq, 'o',
-            markerfacecolor=color,
-            markeredgecolor=color,
-            alpha=.6,
-            ms=5, mew=1)
+    for ii in range(len(freq)):
+        ax.plot(theta[ii], freq[ii], 'o',
+                markerfacecolor=color,
+                markeredgecolor=color,
+                alpha=.6,
+                ms=2. * np.sqrt(vx[ii] * vy[ii]), mew=1)
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
@@ -775,7 +858,8 @@ def plot_GaborFit_envelope(params, color=.5, save_path=None,
         varx  = varxs[ii]
         vary  = varys[ii]
         plt.plot(varx, vary, 'o', ms=freq[ii], mew=1,
-                 color=color, alpha=.6)
+                 markerfacecolor=color,
+                 markeredgecolor=color, alpha=.6)
     ax.set_xlim(1e-1,1e1)
     ax.set_ylim(1e-1,1e1)
     ax.set_yscale('log')

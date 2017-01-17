@@ -134,16 +134,21 @@ class Optimizer(object):
                 error = (1./p) * T.sum(error)
         elif degeneracy == 'COULOMB':
             epsilon = 0.01
-            error = .5 * T.sum(1. / T.sqrt(1. + epsilon - gram**2))
+            error = T.sum(1. / T.sqrt(1. + epsilon - gram_diff**2) - 1./np.sqrt(1. + epsilon))
         elif degeneracy == 'COULOMB_F':
             epsilon = 0.01
-            error = .5 * T.sum((1. / T.sqrt(1. + epsilon - gram**2)) - .5*gram**2)
+            error = T.sum((1. / T.sqrt(1. + epsilon - gram_diff**2))
+                          - .5 * gram_diff**2/(1.+epsilon)**1.5
+                          - 1./np.sqrt(1. + epsilon))
         elif degeneracy == 'RANDOM':
             epsilon = 0.01
-            error = -.5 * T.sum(T.log(1. + epsilon - gram**2))
+            error = - T.sum(T.log(1. + epsilon - gram_diff**2)
+                            - np.log(1. + epsilon))
         elif degeneracy == 'RANDOM_F':
             epsilon = 0.01
-            error = -.5 * T.sum(T.log(1. + epsilon - gram**2) - gram**2)
+            error = -T.sum(T.log(1. + epsilon - gram_diff**2)
+                           - np.log(1. + epsilon)
+                           + gram_diff**2/(1. + epsilon))
         elif degeneracy == 'COHERENCE_SOFT':
             agd = abs(gram_diff)
             agds = agd**2
