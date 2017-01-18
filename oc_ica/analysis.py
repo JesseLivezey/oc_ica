@@ -129,6 +129,10 @@ def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources,
         W_0[i] = get_Winit(n_sources, n_mixtures, init=init, rng=rng)
         for j,dg in enumerate(degeneracy_controls):
             if dg!='QUASI-ORTHO':
+                try:
+                    dg = 'L' + str(int(dg))
+                except ValueError:
+                    pass
                 W[i,j] = get_W(W_0[i], dg, rng=rng, **kwargs)
             else:
                 W[i,j] = quasi_ortho_decorr(W_0[i])

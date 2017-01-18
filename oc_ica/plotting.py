@@ -29,6 +29,7 @@ from oc_ica import datasets as ds
 reload(ds)
 from oc_ica import gabor_fit as fit
 reload(fit)
+from oc_ica import styles
 
 model_color = {}
 
@@ -107,8 +108,8 @@ def plot_figure2a(save_path=None):
     n_iter = 10
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
-    degeneracy_controls = ['QUASI-ORTHO', 'L2', 'COHERENCE_SOFT', 'COULOMB',
-                           'RANDOM', 'L4']
+    degeneracy_controls = ['QUASI-ORTHO', '2', 'COHERENCE_SOFT', 'COULOMB',
+                           'RANDOM', '4']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -117,10 +118,9 @@ def plot_figure2a(save_path=None):
                                           n_sources, n_mixtures, rng=rng)
         W[:, ii] = Wp[0]
         W_0[ii] = W_0p
-    costs = ['Quasi-ortho',r'$L_2$', 'Soft Coherence', 'Coulomb',
-             'Rand. prior', r'$L_4$']
 
-    f, ax = plot_angles_1column(W, W_0, costs, density=True)
+    f, ax = plot_angles_1column(W, W_0, degeneracy_controls,
+                                density=True)
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
     else:
@@ -147,8 +147,8 @@ def plot_figure2b(save_path=None):
     n_iter = 10
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['pathological']
-    degeneracy_controls = ['QUASI-ORTHO', 'L2', 'COHERENCE_SOFT', 'COULOMB',
-                           'RANDOM', 'L4']
+    degeneracy_controls = ['QUASI-ORTHO', '2', 'COHERENCE_SOFT', 'COULOMB',
+                           'RANDOM', '4']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -157,9 +157,9 @@ def plot_figure2b(save_path=None):
                                           n_sources, n_mixtures, rng=rng)
         W[:, ii] = Wp[0]
         W_0[ii] = W_0p
-    costs = ['Quasi-ortho',r'$L_2$', 'Soft Coherence', 'Coulomb',
-             'Rand. prior', r'$L_4$']
-    f, ax = plot_angles_broken_axis(W,W_0,costs,density=True,with_legend=False)
+
+    f, ax = plot_angles_broken_axis(W, W_0, degeneracy_controls,
+                                    with_legend=False)
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
@@ -167,9 +167,10 @@ def plot_figure2b(save_path=None):
     return f, ax
 
 
-def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
+def plot_figure2cd(panel='c', eps=1e-2,
+                   legend=False, save_path=None):
     """
-    Reproduces the panels c and d of figure 2 in the NIPS16 paper
+    Reproduces the panels c and d of figure 2.
 
     Parameters
     ----------
@@ -183,7 +184,7 @@ def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
     fig = plt.figure('costs',figsize=(3,3))
     fig.clf()
     ax = plt.axes([.16,.15,.8,.81])
-    costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
+    costs = ['2', 'COULOMB', 'RANDOM', '4']
     col = np.linspace(0,1,len(costs))
     if panel=='c':
         xx = np.linspace(.6, 1., 100)
@@ -193,15 +194,16 @@ def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
                lambda x: x**3] 
         ax.set_yscale('log')
     elif panel=='d':
-        xx = np.linspace(-.17, .17, 100)
+        xx = np.linspace(-.2, .2, 100)
         fun = [lambda x: x,
                lambda x: x/(1.+eps-x**2)**(3/2),
                lambda x: (2*x)/(1.+eps-x**2),
                lambda x: x**3] 
 
-    for i in xrange(4):
-        ax.plot(xx, fun[i](xx), color=cm.viridis(col[i]),
-                lw=2, label=costs[i])
+    for ii, cost in enumerate(costs):
+        ax.plot(xx, fun[ii](xx), styles.model_line_styles[cost],
+                c=styles.model_colors[cost], lw=2,
+                label=styles.model_labels[cost])
 
     if panel=='d':
         ax.spines['left'].set_position('zero')
@@ -217,80 +219,36 @@ def plot_figure2cd(panel='c', eps=1e-2, save_path=None):
     ax.minorticks_off()
 
     if panel=='c':
-        ax.legend(loc='upper left',frameon=False,ncol=1)
-        ax.set_ylim([1e-1, 1e2])
+        ax.set_ylim([1e-1, 5e1])
         ax.set_xticks(np.arange(0.6, 1.1, .2))
         ax.xaxis.set_major_formatter(formatter)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=-4)#20)
         ax.set_xlabel(r'$\cos\,\theta$')
     elif panel=='d':
         ax.set_ylim(-.1,.1)
-        ax.set_xticks(np.arange(-.15,.16,.15))
+        ax.set_xticks(np.arange(-.2,.21,.2))
         ax.xaxis.set_major_formatter(formatter)
-        ax.set_yticks(np.arange(-.1,.11,.05))
+        ax.set_yticks(np.arange(-.1,.11,.1))
+        ax.yaxis.get_major_ticks()[1].set_visible(False)
+        ax.xaxis.get_majorticklabels()[1].set_horizontalalignment('left')
         ax.yaxis.set_major_formatter(formatter)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=65)#20)
         ax.set_xlabel(r'$\cos\,\theta$',labelpad=80)#180)
     else:
         raise ValueError
-
-    if save_path is not None:
-        plt.savefig(save_path, dpi=300)
-    return fig
-
-
-def plot_derivative_ratio(eps=1e-2, save_path=None):
-    """
-    Reproduces the panels c and d of figure 2 in the NIPS16 paper
-
-    Parameters
-    ----------
-    panel: string, optional
-         Which panel, options: 'c', 'd' 
-    save_path: string, optional
-         figure_path+figure_name+.format to store the figure. 
-         If figure is stored, it is not displayed.   
-    """
-    formatter = mpl.ticker.StrMethodFormatter('{x:.2g}')
-    fig = plt.figure('costs',figsize=(3,3))
-    fig.clf()
-    ax = plt.axes([.16,.15,.8,.81])
-    costs = [r'$L_2$', 'Coulomb', 'Random prior', r'$L_4$']
-    col = np.linspace(0,1,len(costs))
-    xx = np.linspace(.01, .17, 100)
-    fun = [lambda x: x,
-           lambda x: x/(1.+eps-x**2)**(3/2),
-           lambda x: (2*x)/(1.+eps-x**2),
-           lambda x: x**3] 
-
-    for i in xrange(4):
-        print(fun[i](xx)/fun[i](np.zeros_like(xx)+.01))
-        ax.semilogy(xx, fun[i](xx)/fun[i](np.zeros_like(xx)+.01), color=cm.viridis(col[i]),
-                    lw=2, label=costs[i])
-
-    ax.spines['left'].set_position('zero')
-    ax.spines['right'].set_color('none')
-    ax.spines['bottom'].set_position('zero')
-    ax.spines['top'].set_color('none')
-
-    """
-    ax.set_ylim(-.1,.1)
-    ax.set_xticks(np.arange(-.15,.16,.15))
-    ax.xaxis.set_major_formatter(formatter)
-    ax.set_yticks(np.arange(-.1,.11,.05))
-    ax.yaxis.set_major_formatter(formatter)
-    ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=65)#20)
-    ax.set_xlabel(r'$\cos\,\theta$',labelpad=80)#180)
-    """
+    if legend:
+        ax.legend(loc='upper left',frameon=False,ncol=1)
 
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
     else:
         plt.show()
-    return fig
+
+    return fig, ax
+
 
 def plot_figure_flat(save_path=None):
-    """Reproduces figure 2a of the NIPS16 paper
+    """
     Parameters:
     ----------
     save_path: string, optional
@@ -304,7 +262,7 @@ def plot_figure_flat(save_path=None):
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
     degeneracy_controls = ['COULOMB',
-                           'RANDOM', 'COULOMB_F', 'RANDOM_F', 'L4']
+                           'RANDOM', 'COULOMB_F', 'RANDOM_F']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -313,10 +271,10 @@ def plot_figure_flat(save_path=None):
                                           n_sources, n_mixtures, rng=rng)
         W[:, ii] = Wp[0]
         W_0[ii] = W_0p
-    costs = ['Coulomb',
-             'Rand. prior', 'Flat Coulomb', 'Flat Rand. Prior', 'L4']
 
-    f, ax = plot_angles_1column(W, W_0, costs, density=True)
+    f, ax = plot_angles_1column(W, W_0, degeneracy_controls, density=True)
+    ax.set_xlim(80, 90)
+    ax.set_xticks([80, 90])
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
     else:
@@ -325,7 +283,7 @@ def plot_figure_flat(save_path=None):
 
 
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
-                        density=True):
+                        density=True, plot_init=True):
     """
     Plots angle distributions of different costs and initial conditions.  
     Parameters:
@@ -355,7 +313,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     figsize=(3, 3)
     f, ax = plt.subplots(1, figsize=figsize)
 
-    for ii, ws in enumerate(W):
+    for ws, cost in zip(W, costs):
         if ws.ndim  == 2:
             ws = ws[np.newaxis, ...]
         angles = np.array([])
@@ -365,24 +323,26 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         if density:
             h = h*1./np.sum(h)
         b = np.arange(1, 91)
-        if ii == 0:
-            c = 'black'
-        else:
-            c = cmap(col[ii])
-        ax.plot(b, h, drawstyle='steps-pre', color=c,
-                lw=1.5, label=costs[ii])
+        st = styles.model_line_styles[cost]
+        c = styles.model_colors[cost]
+        label = styles.model_labels[cost]
+        ax.plot(b, h, st, drawstyle='steps-pre', color=c,
+                lw=1.5, label=label)
 
-    if W_0.ndim == 2:
-        W_0 = W_0[np.newaxis, ...]
+    if plot_init:
+        if W_0.ndim == 2:
+            W_0 = W_0[np.newaxis, ...]
 
-    angles = np.array([])
-    for wi in W_0:
-        angles = np.concatenate((analysis.compute_angles(wi), angles))
-    h0, b0 = np.histogram(angles, np.arange(0,91))
-    if density:
-        h0 = h0 / np.sum(h0)
-    b0 = np.arange(1, 91)
-    ax.plot(b0, h0, '--', drawstyle='steps-pre', color='r', lw=1)
+        angles = np.array([])
+        for wi in W_0:
+            angles = np.concatenate((analysis.compute_angles(wi), angles))
+        h0, b0 = np.histogram(angles, np.arange(0,91))
+        if density:
+            h0 = h0 / np.sum(h0)
+        b0 = np.arange(1, 91)
+        ax.plot(b0, h0, styles.initial_style, drawstyle='steps-pre',
+                color=styles.initial_color, lw=1)
+
     ax.set_yscale('log')
     ax.set_xlim(0, 90) 
       
@@ -443,7 +403,7 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
     figsize=(3, 3)
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
-    for ii, ws in enumerate(W):
+    for ws, cost in zip(W, costs):
         if ws.ndim  == 2:
             ws = ws[np.newaxis, ...]
         angles = np.array([])
@@ -453,16 +413,14 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
         if density:
             h = h*1./np.sum(h)
         b = np.arange(1, 91)
-        if ii == 0:
-            c = 'black'
-        else:
-            c = cmap(col[ii])
-
-        ax1.plot(b[:n],h[:n],drawstyle='steps-pre',
-            color=c,lw=1.5,label=costs[ii])
+        c = styles.model_colors[cost]
+        label = styles.model_labels[cost]
+        st = styles.model_line_styles[cost]
+        ax1.plot(b[:n], h[:n], st, drawstyle='steps-pre',
+                 color=c, lw=1.5, label=label)
     
-        ax2.plot(b[n:],h[n:],drawstyle='steps-pre',
-            color=c,lw=1.5,label=costs[ii])
+        ax2.plot(b[n:], h[n:], st, drawstyle='steps-pre',
+                 color=c, lw=1.5, label=label)
 
     angles = np.array([])
     for wi in W_0:
