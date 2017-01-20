@@ -128,14 +128,16 @@ def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources,
     for i,init in enumerate(initial_conditions):
         W_0[i] = get_Winit(n_sources, n_mixtures, init=init, rng=rng)
         for j,dg in enumerate(degeneracy_controls):
-            if dg!='QUASI-ORTHO':
+            if dg == 'QUASI-ORTHO':
+                W[i,j] = quasi_ortho_decorr(W_0[i])
+            elif dg == 'INIT':
+                W[i, j] = W_0[i]
+            else:
                 try:
                     dg = 'L' + str(int(dg))
                 except ValueError:
                     pass
                 W[i,j] = get_W(W_0[i], dg, rng=rng, **kwargs)
-            else:
-                W[i,j] = quasi_ortho_decorr(W_0[i])
     return W, W_0
 
 def compute_angles(w):

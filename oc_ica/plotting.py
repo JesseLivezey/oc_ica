@@ -205,11 +205,14 @@ def plot_figure2cd(panel='c', eps=1e-2,
                 c=styles.model_colors[cost], lw=2,
                 label=styles.model_labels[cost])
 
-    if panel=='d':
+    if panel == 'c':
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+    elif panel=='d':
         ax.spines['left'].set_position('zero')
-        ax.spines['right'].set_color('none')
+        ax.spines['right'].set_visible(False)
         ax.spines['bottom'].set_position('zero')
-        ax.spines['top'].set_color('none')
+        ax.spines['top'].set_visible(False)
 
     ax.spines['left'].set_smart_bounds(True)
     ax.spines['bottom'].set_smart_bounds(True)
@@ -232,7 +235,7 @@ def plot_figure2cd(panel='c', eps=1e-2,
         ax.yaxis.get_major_ticks()[1].set_visible(False)
         ax.xaxis.get_majorticklabels()[1].set_horizontalalignment('left')
         ax.yaxis.set_major_formatter(formatter)
-        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=65)#20)
+        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=70)#20)
         ax.set_xlabel(r'$\cos\,\theta$',labelpad=80)#180)
     else:
         raise ValueError
@@ -258,7 +261,7 @@ def plot_figure_flat(save_path=None):
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
     n_mixtures = 64
-    n_iter = 10
+    n_iter = 2
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
     degeneracy_controls = ['COULOMB',
@@ -272,9 +275,11 @@ def plot_figure_flat(save_path=None):
         W[:, ii] = Wp[0]
         W_0[ii] = W_0p
 
-    f, ax = plot_angles_1column(W, W_0, degeneracy_controls, density=True)
-    ax.set_xlim(80, 90)
-    ax.set_xticks([80, 90])
+    f, ax = plot_angles_1column(W, W_0, degeneracy_controls,
+                                plot_init=False, density=True)
+    ax.set_xlim(81.5, 90)
+    ax.set_xticks([82, 90])
+    ax.legend(loc='lower center', frameon=False)
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
     else:
@@ -314,6 +319,10 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     f, ax = plt.subplots(1, figsize=figsize)
 
     for ws, cost in zip(W, costs):
+        if cost[0] == 'L':
+            cost = cost[1]
+        elif cost == 'COHERENCE':
+            cost = 'COHERENCE_SOFT'
         if ws.ndim  == 2:
             ws = ws[np.newaxis, ...]
         angles = np.array([])
@@ -495,7 +504,7 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
     return f, (ax1, ax2)
 
 
-def plot_bases(bases, save_path=None, scale_rows=True):
+def plot_bases(bases, fax=None, save_path=None, scale_rows=True):
     """PLots a set of  bases. (Reproduces figure 3b of the NIPS16 paper.)
     Parameters:
     ----------
@@ -512,7 +521,10 @@ def plot_bases(bases, save_path=None, scale_rows=True):
     """
     n_pixels = int(np.sqrt(bases.shape[1]))
     n_bases  = int(np.sqrt(bases.shape[0]))
-    f, ax = plt.subplots(1)
+    if fax is None:
+        f, ax = plt.subplots(1)
+    else:
+        f, ax = fax
     im = tri(bases,(n_pixels,n_pixels),(n_bases,n_bases),
                 (2,2), scale_rows_to_unit_interval=scale_rows,
                 output_pixel_vals=False)
@@ -538,10 +550,12 @@ def plot_figure3a(angles,labels,density=True,\
     figname: string, optional
            Name of the figure
     """
+    show = False
     if ax is None:
         fig = plt.figure('angle_hist',figsize=(4,4))
         fig.clf()
         ax = plt.axes([.15,.1,.8,.8])
+        show = True
     col = np.linspace(0,1,len(labels))
     for i in xrange(len(labels)):
         h,b = np.histogram(angles[i],np.arange(0,91))
@@ -563,7 +577,8 @@ def plot_figure3a(angles,labels,density=True,\
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
-        plt.show()
+        if show:
+            plt.show()
 
 def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     """Reproduces figure 3 of the NIPS16 paper
@@ -590,21 +605,20 @@ def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     #compute the angles
     n_sources = bases.shape[1]
     angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
-    for i in xrange(len(costs)):
-        angles[i] = analysis.compute_angles(bases[i])
+    for ii in xrange(len(costs)):
+        angles[ii] = analysis.compute_angles(bases[ii])
     #generate figure
-    fig = plt.figure('Figure3',figsize=(6,3))
-    fig.clf()
+    f, (ax_angles, ax_bases) = plt.subplots(1, 2, figsize=(6,3))
     labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
     #figure3a
-    ax_angles = plt.axes([.125,.15,.35,.7])
-    plot_figure3a(angles,labels,density=True,ax=ax_angles)
+    #ax_angles = plt.axes([.125,.15,.35,.7])
+    plot_figure3a(angles, labels, density=True, ax=ax_angles)
     #figure3b
-    ax_bases = plt.axes([.55,.15,.4,.8])
+    #ax_bases = plt.axes([.55,.15,.4,.8])
     w = bases[-1]
-    plot_bases(w,ax=ax_bases)
-    fig.text(.01,.9,'a)',fontsize=14)
-    fig.text(.5,.9,'b)',fontsize=14)
+    plot_bases(w, fax=(f, ax_bases)) #, scale_rows=False)
+    f.text(.01,.9,'a)',fontsize=14)
+    f.text(.5,.9,'b)',fontsize=14)
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:

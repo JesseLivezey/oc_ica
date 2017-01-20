@@ -283,7 +283,7 @@ class SGD(Optimizer):
 
     def fit(self, data, components_,
             tol=1e-4, batch_size=128, n_epochs=1000000,
-            patience=100, seed=20160615):
+            patience=10000, seed=20160615):
         """
         Fit components_ from data.
         """

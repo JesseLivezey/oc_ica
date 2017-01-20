@@ -12,7 +12,7 @@ models = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT', 'COULOMB', 'COULOMB_F', 'RA
 
 n_ica = 6
 ica_colors = np.linspace(1, 0, n_ica-1)
-ica_colors = ['black'] + [cmap(ica_colors[-1]), cmap(ica_colors[0]), cmap(ica_colors[1]),
+ica_colors = ['gray'] + [cmap(ica_colors[-1]), cmap(ica_colors[0]), cmap(ica_colors[1]),
                           cmap(ica_colors[2]), cmap(ica_colors[2]),
                           cmap(ica_colors[3]), cmap(ica_colors[3])]
 
