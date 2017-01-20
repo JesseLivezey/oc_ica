@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction import image
 
-from oc_ica.datasets import zca, inverse_zca
+from oc_ica.datasets import zca
 from oc_ica.utils import tile_raster_images as tri
 from oc_ica.models import sc, ica
 from oc_ica.plotting import plot_bases
@@ -15,6 +15,7 @@ reload(ica)
 
 parser = argparse.ArgumentParser(description='Fit models to natural images')
 parser.add_argument('--patch_size', '-p', type=int, default=None)
+parser.add_argument('--n_iter', '-n', type=int, default=10)
 parser.add_argument('--oc', '-o', type=float, default=None)
 parser.add_argument('--models', '-m', type=str, default=None, nargs='+')
 args = parser.parse_args()
@@ -22,6 +23,7 @@ args = parser.parse_args()
 patch_size = args.patch_size
 OC = args.oc
 models = args.models
+n_iter = args.n_iter
 
 scratch = os.getenv('SCRATCH', '')
 
@@ -58,7 +60,6 @@ filename = os.path.join(os.environ['SCRATCH'],'data/vanhateren/images_curated.h5
 key = 'van_hateren_good'
 with h5py.File(filename,'r') as f:
     images = f[key].value
-rng = np.random.RandomState(1234)
 patches = image.PatchExtractor(patch_size=(patch_size, patch_size),\
                                max_patches=total_samples//images.shape[0],
                                random_state=rng).transform(images)
@@ -67,15 +68,16 @@ X_mean = X.mean(axis=-1, keepdims=True)
 X -= X_mean
 X_zca, d, u = zca(X)
 
-W_fits = np.full((len(models), n_sources, n_mixtures), np.nan)
-lambdas = np.full((len(models),), np.nan)
-sparsities = np.full((len(models),), np.nan)
+W_fits = np.full((len(models), n_iter, n_sources, n_mixtures), np.nan)
+lambdas = np.full((len(models), n_iter), np.nan)
+sparsities = np.full((len(models), n_iter), np.nan)
 
 for ii, m in enumerate(models):
-    model, lambd, p = fit_ica_model(m, n_sources, X_zca, sparsity, rng)
-    W_fits[ii] = model.components_
-    lambdas[ii] = lambd
-    sparsities[ii] = p
+    for jj in range(n_iter):
+        model, lambd, p = fit_ica_model(m, n_sources, X_zca, sparsity, rng)
+        W_fits[ii, jj] = model.components_
+        lambdas[ii, jj] = lambd
+        sparsities[ii, jj] = p
 
 fname = 'nat_images_mixtures-{}_sources-{}_models-{}.h5'.format(n_mixtures,
                                                                 n_sources,
