@@ -39,16 +39,19 @@ else:
     raise ValueError
 
 def fit_ica_model(model, n_sources, X, sparsity, rng, **kwargs):
-    dim_input = X.shape[0]
+    p = None
     try:
         model = int(model)
-    except ValueError:
-        pass
-    if isinstance(model, int):
         p = model
         model='Lp'
-    else:
-        p = None
+    except ValueError:
+        if model == 'SM':
+            n_mixtures = X.shape[0]
+            model = ica.ICA(n_mixtures, n_sources, degeneracy='SM',
+                            lambd=0.)
+            model.fit(X)
+            sparsity = model.losses(X)[2]
+            return model, None, sparsity
     kwargs['p'] = p
     kwargs['degeneracy'] = model
     kwargs['rng'] = rng
@@ -60,7 +63,7 @@ filename = os.path.join(os.environ['SCRATCH'],'data/vanhateren/images_curated.h5
 key = 'van_hateren_good'
 with h5py.File(filename,'r') as f:
     images = f[key].value
-patches = image.PatchExtractor(patch_size=(patch_size, patch_size),\
+patches = image.PatchExtractor(patch_size=(patch_size, patch_size),
                                max_patches=total_samples//images.shape[0],
                                random_state=rng).transform(images)
 X = patches.reshape((patches.shape[0],n_mixtures)).T
