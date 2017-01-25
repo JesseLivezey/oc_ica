@@ -17,14 +17,15 @@ ica_colors = ['gray'] + [cmap(ica_colors[-1]), cmap(ica_colors[0]), cmap(ica_col
                           cmap(ica_colors[3]), cmap(ica_colors[3])]
 
 model_colors = ica_colors + ['cyan', 'magenta']
-model_colors = {m: c for m, c in zip(models, model_colors)}
-initial_color = 'red'
-initial_style = '--'
+colors = {m: c for m, c in zip(models, model_colors)}
+colors['INIT'] = 'red'
 
 model_line_styles = ['-', '-', '-', '-', '-', ':', '-', ':', '-', '-']
-model_line_styles = {m: s for m, s in zip(models, model_line_styles)}
+line_styles = {m: s for m, s in zip(models, model_line_styles)}
+line_styles['INIT'] = '--'
 
 model_labels = ['Quasi-ortho', r'$L_2$', r'$L_4$', 'Soft Coher.', 'Coulomb',
                 'Flat Coulomb', 'Rand. Prior', 'Flat Rand. Prior',
                 'Score Matching', 'Sparse Coding']
-model_labels = {m: l for m, l in zip(models, model_labels)}
+labels = {m: l for m, l in zip(models, model_labels)}
+labels['INIT'] = 'Gaussian'

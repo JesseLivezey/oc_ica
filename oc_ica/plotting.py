@@ -201,9 +201,9 @@ def plot_figure2cd(panel='c', eps=1e-2,
                lambda x: x**3] 
 
     for ii, cost in enumerate(costs):
-        ax.plot(xx, fun[ii](xx), styles.model_line_styles[cost],
-                c=styles.model_colors[cost], lw=2,
-                label=styles.model_labels[cost])
+        ax.plot(xx, fun[ii](xx), styles.line_styles[cost],
+                c=styles.colors[cost], lw=2,
+                label=styles.labels[cost])
 
     if panel == 'c':
         ax.spines['right'].set_visible(False)
@@ -332,9 +332,9 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         if density:
             h = h*1./np.sum(h)
         b = np.arange(1, 91)
-        st = styles.model_line_styles[cost]
-        c = styles.model_colors[cost]
-        label = styles.model_labels[cost]
+        st = styles.line_styles[cost]
+        c = styles.colors[cost]
+        label = styles.labels[cost]
         ax.plot(b, h, st, drawstyle='steps-pre', color=c,
                 lw=1.5, label=label)
 
@@ -422,9 +422,9 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
         if density:
             h = h*1./np.sum(h)
         b = np.arange(1, 91)
-        c = styles.model_colors[cost]
-        label = styles.model_labels[cost]
-        st = styles.model_line_styles[cost]
+        c = styles.colors[cost]
+        label = styles.labels[cost]
+        st = styles.line_styles[cost]
         ax1.plot(b[:n], h[:n], st, drawstyle='steps-pre',
                  color=c, lw=1.5, label=label)
     
