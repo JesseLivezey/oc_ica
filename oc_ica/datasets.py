@@ -20,10 +20,6 @@ def zca(X):
     X_zca = M.dot(X)
     return X_zca, d, u
 
-def inverse_zca(X, d, u):
-    iM = u.dot(np.diag(np.sqrt(d)).dot(u.T))
-    return iM.dot(X)
-
 def generate_k_sparse(A, k, n_samples, rng, lambd=1.):
     _, source_dim = A.shape
     #generate sources
@@ -40,7 +36,7 @@ def generate_k_sparse(A, k, n_samples, rng, lambd=1.):
     #preprocess data
     X_mean = X.mean(axis=-1, keepdims=True)
     X -= X_mean
-    X_zca = decorrelate(X)
+    X_zca, d, u = zca(X)
     return X_zca
 
 def generate_imagePatches(datasetPath,patch_size=8,n_patches=200000,\

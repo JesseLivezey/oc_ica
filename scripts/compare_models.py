@@ -158,7 +158,8 @@ fname = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_models-{}.h5'.format(n
                                                                                n_sources, k,
                                                                                '_'.join(A_priors),
                                                                                '_'.join(models))
-folder = 'comparison_mixtures-{}_sources-{}_k-{}'.format(n_mixtures, n_sources, k)
+folder = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}'.format(n_mixtures, n_sources, k,
+                                                                   '_'.join(A_priors))
 try:
     os.mkdir(os.path.join(scratch, folder))
 except OSError:
