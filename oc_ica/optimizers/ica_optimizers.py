@@ -79,11 +79,16 @@ class Optimizer(object):
         """
         Create transform_f and reconstruct_f functions.
         """
+        norm_projection = kwargs.get('norm_projection', True)
         X = T.matrix('X')
         W = T.matrix('W')
-        epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
-        W_norm = T.sqrt(epssumsq)
-        Wn = W / W_norm
+        if norm_projection:
+            epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+            W_norm = T.sqrt(epssumsq)
+            Wn = W / W_norm
+            print 'transform'
+        else:
+            Wn = W
         
         S, X_hat = self.transforms(Wn, X)
 
@@ -160,9 +165,9 @@ class Optimizer(object):
             error = abs(gram_diff).max()
         elif degeneracy == 'SM':
             ts = T.tanh(S)
-            score = Wn.T.dot(ts)
-            dscore = (Wn**2).T.dot(1.-ts**2)
-            error = (dscore.sum(axis=0) + .5*(score**2).sum(axis=0)).mean()
+            score = -Wn.T.dot(ts)
+            dscore = -(Wn**2).T.dot(1.-ts**2)
+            error = ((dscore) + .5*(score**2)).sum(axis=0).mean()
         elif degeneracy is None:
             error = None
         else:
@@ -199,17 +204,23 @@ class Optimizer(object):
 
 
 class LBFGSB(Optimizer):
-    def setup(self, n_sources, n_mixtures, degeneracy, lambd, p):
+    def setup(self, n_sources, n_mixtures, degeneracy, lambd, p,
+              **kwargs):
         """
         L-BFGS-B Optimization
         """
+        norm_projection = kwargs.get('norm_projection', True)
         X = theano.shared(np.zeros((1, 1), dtype='float32'))
         self.X = X
         Wv = T.vector('W')
         W  = T.reshape(Wv,(n_sources, n_mixtures))
-        epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
-        W_norm = T.sqrt(epssumsq)
-        Wn = W / W_norm
+        if norm_projection:
+            epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+            W_norm = T.sqrt(epssumsq)
+            Wn = W / W_norm
+            print 'setup'
+        else:
+            Wn = W
 
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, degeneracy,
                                                         lambd, p)
@@ -252,16 +263,20 @@ class LBFGSB(Optimizer):
 
 class SGD(Optimizer):
     def setup(self, n_sources, n_mixtures, w_0, lambd, degeneracy,
-              learning_rule, p):
+              learning_rule, p, **kwargs):
         """
         SGD optimization
         """
+        norm_projection = kwargs.get('norm_projection', True)
         X = T.matrix('X')
         W  = theano.shared(np.random.randn(n_sources, n_mixtures).astype('float32'))
         self.W = W
-        epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
-        W_norm = T.sqrt(epssumsq)
-        Wn = W / W_norm
+        if norm_projection:
+            epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
+            W_norm = T.sqrt(epssumsq)
+            Wn = W / W_norm
+        else:
+            Wn = W
         
         loss, error, penalty, mse, S, X_hat = self.cost(Wn, X, degeneracy,
                                                         lambd, p)

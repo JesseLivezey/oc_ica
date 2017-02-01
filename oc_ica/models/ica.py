@@ -66,8 +66,6 @@ class ICA(BaseEstimator, TransformerMixin):
         else:
             print('Degeneracy control: {}'.format(degeneracy))
 
-        self.fit_kwargs = fit_kwargs
-
         if w_init is None:
             w_0 = rng.randn(n_sources, n_mixtures)
         else:
@@ -77,15 +75,19 @@ class ICA(BaseEstimator, TransformerMixin):
         self.n_sources = n_sources
         self.components_ = w_0
         if optimizer == 'L-BFGS-B':
-            self.optimizer = ica_optimizers.LBFGSB(n_sources=n_sources, n_mixtures=n_mixtures,
-                                               degeneracy=degeneracy,
-                                               lambd=float(lambd), p=p, prior=prior)
+            self.optimizer = ica_optimizers.LBFGSB(n_sources=n_sources,
+                                                   n_mixtures=n_mixtures,
+                                                   degeneracy=degeneracy,
+                                                   lambd=float(lambd), p=p,
+                                                   prior=prior,
+                                                   **fit_kwargs)
         elif optimizer == 'sgd':
             self.optimizer = ica_optimizers.SGD(n_sources=n_sources, n_mixtures=n_mixtures,
                                             w_0=w_0, lambd=float(lambd),
                                             degeneracy=degeneracy,
                                             learning_rule=learning_rule,
-                                            p=p, prior=prior)
+                                            p=p, prior=prior,
+                                            **fit_kwargs)
         else:
             raise ValueError
 
@@ -95,7 +97,7 @@ class ICA(BaseEstimator, TransformerMixin):
         """
         self.components_ = self.components_/np.linalg.norm(self.components_, axis=-1, keepdims=True)
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, **kwargs):
         """
         Fit an ICA model to data.
 
@@ -105,7 +107,7 @@ class ICA(BaseEstimator, TransformerMixin):
             Data array (mixtures by samples)
         """
         self._normalize_components()
-        w_f = self.optimizer.fit(X, self.components_)
+        w_f = self.optimizer.fit(X, self.components_, **kwargs)
         self.components_ = w_f
         self._normalize_components()
         return self
@@ -128,7 +130,7 @@ class ICA(BaseEstimator, TransformerMixin):
         sources = self.optimizer.transform(X, self.components_)
         return sources
 
-    def fit_transform(self, X, y=None):
+    def fit_transform(self, X, y=None, **kwargs):
         """
         Fit an ICA model to data and returns transformed data.
 
@@ -143,7 +145,7 @@ class ICA(BaseEstimator, TransformerMixin):
             Data transformed into sources.
         """
         self._normalize_components()
-        self.fit(X)
+        self.fit(X, **kwargs)
         self._normalize_components()
         return self.transform(X)
 
