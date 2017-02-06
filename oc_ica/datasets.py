@@ -20,13 +20,18 @@ def zca(X):
     X_zca = M.dot(X)
     return X_zca, d, u
 
-def generate_k_sparse(A, k, n_samples, rng, lambd=1.):
+def generate_k_sparse(A, k, n_samples, rng, lambd=1.,
+                      keep_max=False):
     _, source_dim = A.shape
     #generate sources
     S = rng.laplace(0, lambd, size=(source_dim, n_samples))
 
     for ii in range(n_samples):
-        S[np.argsort(abs(S[:,ii]))[:-k], ii] = 0.
+        if keep_max:
+            idxs = np.argsort(abs(S[:,ii]))[:-k]
+        else:
+            idxs = rng.permutation(source_dim)[:source_dim-k]
+        S[idxs, ii] = 0.
 
     S /= S.std(axis=-1, keepdims=True)
 
