@@ -21,6 +21,7 @@ parser.add_argument('--a', '-a', type=str, default=None)
 parser.add_argument('--k', '-k', type=int, default=None)
 parser.add_argument('--generate', '-g', default=False, action='store_true')
 parser.add_argument('--sgd_COHERENCE', '-s', default=False, action='store_true')
+parser.add_argument('--keep_max', '-x', default=False, action='store_true')
 args = parser.parse_args()
 
 n_mixtures = args.n_mixtures
@@ -35,6 +36,7 @@ lambda_min = args.lambda_min
 lambda_max = args.lambda_max
 n_lambda = args.n_lambda
 sgd_COHERENCE = args.sgd_COHERENCE
+keep_max = args.keep_max
 
 if sgd_COHERENCE:
     assert generate
@@ -109,7 +111,7 @@ else:
     n_mixtures = A_array.shape[-2]
     n_sources = A_array.shape[-1]
     OC = n_sources / n_mixtures
-n_samples = n_mixtures * n_sources
+n_samples = 10 * n_mixtures * n_sources
 
 if generate:
     sys.exit(0)
@@ -134,7 +136,8 @@ for ii, p in enumerate(A_priors):
     min_ks[ii] = min_k
     for jj in range(n_iter):
         A = A_array[ii, jj]
-        X = generate_k_sparse(A, min_k, n_samples, rng, lambd=1.)
+        X = generate_k_sparse(A, min_k, n_samples, rng, lambd=1.,
+                              keep_max=keep_max)
         for kk, model in enumerate(models):
             if model == 'SM':
                 lambdas_list = [0.]
@@ -154,12 +157,14 @@ for ii, p in enumerate(A_priors):
 
 print('\nSaving fits.')
 models = [str(m) for m in models]
-fname = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_models-{}.h5'.format(n_mixtures,
+fname = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_models-{}_keep_max-{}.h5'.format(n_mixtures,
                                                                                n_sources, k,
                                                                                '_'.join(A_priors),
-                                                                               '_'.join(models))
-folder = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}'.format(n_mixtures, n_sources, k,
-                                                                   '_'.join(A_priors))
+                                                                               '_'.join(models),
+                                                                               keep_max)
+folder = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_keep_max-{}'.format(n_mixtures, n_sources, k,
+                                                                   '_'.join(A_priors),
+                                                                   keep_max)
 try:
     os.mkdir(os.path.join(scratch, folder))
 except OSError:
