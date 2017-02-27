@@ -263,7 +263,7 @@ def plot_figure2cd(panel='c', eps=1e-2,
     return fig, ax
 
 
-def plot_figure_flat(save_path=None):
+def plot_figure_flat(save_path=None, n_iter=10):
     """
     Parameters:
     ----------
@@ -274,7 +274,6 @@ def plot_figure_flat(save_path=None):
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
     n_mixtures = 64
-    n_iter = 2
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
     degeneracy_controls = ['COULOMB',
@@ -289,7 +288,8 @@ def plot_figure_flat(save_path=None):
         W_0[ii] = W_0p
 
     f, ax = plot_angles_1column(W, W_0, degeneracy_controls,
-                                plot_init=False, density=True)
+                                plot_init=False, density=True,
+                                pe_style=[True, True, False, False])
     ax.set_xlim(81.5, 90)
     ax.set_xticks([82, 90])
     ax.legend(loc='lower center', frameon=False)
@@ -301,7 +301,8 @@ def plot_figure_flat(save_path=None):
 
 
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
-                        density=True, plot_init=True):
+                        density=True, plot_init=True,
+                        pe_style=None):
     """
     Plots angle distributions of different costs and initial conditions.  
     Parameters:
@@ -331,7 +332,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     figsize=(3, 3)
     f, ax = plt.subplots(1, figsize=figsize)
 
-    for ws, cost in zip(W, costs):
+    for ii, (ws, cost) in enumerate(zip(W, costs)):
         if cost[0] == 'L':
             cost = cost[1]
         elif cost == 'COHERENCE':
@@ -348,9 +349,13 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         st = styles.line_styles[cost]
         c = styles.colors[cost]
         label = styles.labels[cost]
+        pe_arg = [pe.Stroke(linewidth=2.5, foreground='k'), pe.Normal()]
+        if pe_style is not None:
+            if not pe_style[ii]:
+                pe_arg = None
         ax.plot(b, h, st, drawstyle='steps-pre', color=c,
                 lw=1.5, label=label,
-                path_effects=[pe.Stroke(linewidth=2.5, foreground='k'), pe.Normal()])
+                path_effects=pe_arg)
 
     if plot_init:
         if W_0.ndim == 2:
