@@ -151,20 +151,27 @@ def cos2deg(cos):
     return np.arccos(abs(cos))/np.pi*180.
 
 def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
+                                    keep_max=None,
                                     overwrite=False):
     n_sources = int(n_mixtures * float(OC))
-    fit_folder = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}'.format(n_mixtures,
-                                                                           n_sources, k,
-                                                                           '_'.join(priors))
+    if keep_max is None:
+        fit_folder = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}'.format(n_mixtures,
+                                                                               n_sources, k,
+                                                                               '_'.join(priors))
+    else:
+        fit_folder = 'comparison_mixtures-{}_sources-{}_k-{}_priors-{}_keep_max-{}'.format(n_mixtures,
+                                                                               n_sources, k,
+                                                                               '_'.join(priors),
+                                                                               keep_max)
     a_file = 'a_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC, '_'.join(priors))
-    print a_file
-    print fit_folder
+    #print a_file
+    #print fit_folder
     fit_files = sorted(glob.glob(os.path.join(base_folder, fit_folder,
         'comparison*.h5')))
     sc_fits = None
-    models = [f.split('.')[-2].split('-')[-1] for f in fit_files]
-    print len(models), models
-    print ''
+    models = [f.split('.')[-2].split('-')[-2].split('_keep')[0] for f in fit_files]
+    #print len(models), models
+    #print ''
 
     with h5py.File(os.path.join(base_folder, a_file), 'r') as f:
         A_array = f['A_array'].value
@@ -239,5 +246,4 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                                 pass
         with h5py.File(results_file, 'w') as f:
             f.create_dataset('null_results', data=null_results)
-    return results, null_results
-
+    return results, null_results, lambdas
