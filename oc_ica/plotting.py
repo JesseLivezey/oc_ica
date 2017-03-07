@@ -10,6 +10,7 @@ from matplotlib.projections import PolarAxes
 from mpl_toolkits.axisartist import angle_helper
 from mpl_toolkits.axisartist.grid_finder import MaxNLocator
 from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
+import matplotlib.patheffects as pe
 
 
 mpl.rcParams['xtick.labelsize'] = 10
@@ -18,17 +19,17 @@ mpl.rcParams['axes.labelsize']  = 14
 mpl.rcParams['legend.fontsize'] = 10
 
 from oc_ica import utils
-reload(utils)
+#reload(utils)
 from oc_ica.utils import tile_raster_images as tri
 from oc_ica import analysis
-reload(analysis)
+#reload(analysis)
 
 import oc_ica.models.ica as ocica
-reload(ocica)
+#reload(ocica)
 from oc_ica import datasets as ds
-reload(ds)
+#reload(ds)
 from oc_ica import gabor_fit as fit
-reload(fit)
+#reload(fit)
 from oc_ica import styles
 
 model_color = {}
@@ -60,30 +61,37 @@ def plot_figure1c(save_path=None):
     for ii, f in enumerate(l4_evals):
         l4_vals[ii] = f(thetas)
 
-    f, (ax2, ax4) = plt.subplots(2, 1,
-                                 sharex=True,
-                                 figsize=(6, 3))
+    f, ax = plt.subplots(1,
+                         sharex=True,
+                         figsize=(6, 2))
     for ii, e in enumerate(l2_vals):
-        ax2.plot(thetas, e, label=r'$e_'+str(ii)+'$',
-                 c=cm.plasma(col[ii]), lw=2)
+        if ii == 0:
+            label = styles.labels['2']
+        else:
+            label = None
+        ax.plot(thetas, e/9.,
+                c=styles.colors['2'],
+                lw=2, label=label,
+                path_effects=[pe.Stroke(linewidth=3, foreground='k'), pe.Normal()])
     for ii, e in enumerate(l4_vals):
-        ax4.plot(thetas, e, c=cm.plasma(col[ii]), lw=2)
+        if ii == 0:
+            label = styles.labels['4']
+        else:
+            label = None
+        ax.plot(thetas, e/29., c=styles.colors['4'], lw=2,
+                label=label, path_effects=[pe.Stroke(linewidth=3, foreground='k'), pe.Normal()])
 
-    ax2.grid()
-    ax4.grid()
+    ax.grid()
 
-    ax2.set_ylim([-.5, 8.5])
-    ax2.set_yticks(np.linspace(0, 8, 2))
-    leg = ax2.legend(loc='center right')
-    ax2.set_ylabel(r'$L_2$ $e_i$', labelpad=14)
-
-    ax4.set_xlim([thetas[0], thetas[-1]])
-    ax4.set_yticks(np.linspace(-30, 30, 3))
-    ax4.set_xticks(np.linspace(thetas[0], thetas[-1], 3))
-    ax4.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
+    ax.set_xlim([thetas[0], thetas[-1]])
+    ax.set_ylim(-1, 1)
+    ax.set_yticks(np.linspace(-1, 1, 2))
+    ax.set_xticks(np.linspace(thetas[0], thetas[-1], 3))
+    ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
                          np.pi*180.).astype(int))
-    ax4.set_xlabel(r'$\theta_2$')
-    ax4.set_ylabel(r'$L_4$ $e_i$', labelpad=-0)
+    ax.set_xlabel(r'$\theta_2$')
+    ax.set_ylabel(r'$e_i$ (arb. units)', labelpad=-0)
+    ax.legend(loc='lower right', frameon=False)
 
     f.tight_layout()
 
@@ -92,9 +100,10 @@ def plot_figure1c(save_path=None):
     else:
         plt.show()
 
-    return f, (ax2, ax4)
+    return f, ax
 
-def plot_figure2a(save_path=None):
+
+def plot_figure2a(save_path=None, n_iter=10):
     """Reproduces figure 2a of the NIPS16 paper
     Parameters:
     ----------
@@ -105,7 +114,6 @@ def plot_figure2a(save_path=None):
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
     n_mixtures = 64
-    n_iter = 10
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
     degeneracy_controls = ['QUASI-ORTHO', '2', 'COHERENCE_SOFT', 'COULOMB',
@@ -127,7 +135,8 @@ def plot_figure2a(save_path=None):
         plt.show()
     return f, ax
 
-def plot_figure2b(save_path=None):
+
+def plot_figure2b(save_path=None, n_iter=10):
     """Reproduces figure 2b of the NIPS16 paper.
     Parameters:
     ----------
@@ -144,7 +153,6 @@ def plot_figure2b(save_path=None):
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
     n_mixtures = 64
-    n_iter = 10
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['pathological']
     degeneracy_controls = ['QUASI-ORTHO', '2', 'COHERENCE_SOFT', 'COULOMB',
@@ -199,11 +207,14 @@ def plot_figure2cd(panel='c', eps=1e-2,
                lambda x: x/(1.+eps-x**2)**(3/2),
                lambda x: (2*x)/(1.+eps-x**2),
                lambda x: x**3] 
+    else:
+        raise ValueError('Choose c or d')
 
     for ii, cost in enumerate(costs):
         ax.plot(xx, fun[ii](xx), styles.line_styles[cost],
                 c=styles.colors[cost], lw=2,
-                label=styles.labels[cost])
+                label=styles.labels[cost],
+                path_effects=[pe.Stroke(linewidth=3, foreground='k'), pe.Normal()])
 
     if panel == 'c':
         ax.spines['right'].set_visible(False)
@@ -220,6 +231,8 @@ def plot_figure2cd(panel='c', eps=1e-2,
     ax.yaxis.set_ticks_position('left')
     ax.set_xlim(np.min(xx),np.max(xx))
     ax.minorticks_off()
+    for spine in ax.spines.values():
+        spine.set_zorder(-10)
 
     if panel=='c':
         ax.set_ylim([1e-1, 5e1])
@@ -250,7 +263,7 @@ def plot_figure2cd(panel='c', eps=1e-2,
     return fig, ax
 
 
-def plot_figure_flat(save_path=None):
+def plot_figure_flat(save_path=None, n_iter=10):
     """
     Parameters:
     ----------
@@ -261,7 +274,6 @@ def plot_figure_flat(save_path=None):
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
     n_mixtures = 64
-    n_iter = 2
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
     degeneracy_controls = ['COULOMB',
@@ -276,7 +288,8 @@ def plot_figure_flat(save_path=None):
         W_0[ii] = W_0p
 
     f, ax = plot_angles_1column(W, W_0, degeneracy_controls,
-                                plot_init=False, density=True)
+                                plot_init=False, density=True,
+                                pe_style=[True, True, False, False])
     ax.set_xlim(81.5, 90)
     ax.set_xticks([82, 90])
     ax.legend(loc='lower center', frameon=False)
@@ -288,7 +301,8 @@ def plot_figure_flat(save_path=None):
 
 
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
-                        density=True, plot_init=True):
+                        density=True, plot_init=True,
+                        pe_style=None):
     """
     Plots angle distributions of different costs and initial conditions.  
     Parameters:
@@ -318,7 +332,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     figsize=(3, 3)
     f, ax = plt.subplots(1, figsize=figsize)
 
-    for ws, cost in zip(W, costs):
+    for ii, (ws, cost) in enumerate(zip(W, costs)):
         if cost[0] == 'L':
             cost = cost[1]
         elif cost == 'COHERENCE':
@@ -335,8 +349,13 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         st = styles.line_styles[cost]
         c = styles.colors[cost]
         label = styles.labels[cost]
+        pe_arg = [pe.Stroke(linewidth=2.5, foreground='k'), pe.Normal()]
+        if pe_style is not None:
+            if not pe_style[ii]:
+                pe_arg = None
         ax.plot(b, h, st, drawstyle='steps-pre', color=c,
-                lw=1.5, label=label)
+                lw=1.5, label=label,
+                path_effects=pe_arg)
 
     if plot_init:
         if W_0.ndim == 2:
@@ -349,8 +368,8 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         if density:
             h0 = h0 / np.sum(h0)
         b0 = np.arange(1, 91)
-        ax.plot(b0, h0, styles.initial_style, drawstyle='steps-pre',
-                color=styles.initial_color, lw=1)
+        ax.plot(b0, h0, styles.line_styles['INIT'], drawstyle='steps-pre',
+                color=styles.colors['INIT'], lw=1)
 
     ax.set_yscale('log')
     ax.set_xlim(0, 90) 
@@ -383,6 +402,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         f.subplots_adjust(left=.15, bottom=.1, right=.95, top=.95,
                           wspace=0.05, hspace=0.05)
     return f, ax
+
 
 def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
                             save_path=None,density=True,with_legend=True):
@@ -426,10 +446,12 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
         label = styles.labels[cost]
         st = styles.line_styles[cost]
         ax1.plot(b[:n], h[:n], st, drawstyle='steps-pre',
-                 color=c, lw=1.5, label=label)
+                 color=c, lw=1.5, label=label,
+                 path_effects=[pe.Stroke(linewidth=2.5, foreground='k'), pe.Normal()])
     
         ax2.plot(b[n:], h[n:], st, drawstyle='steps-pre',
-                 color=c, lw=1.5, label=label)
+                 color=c, lw=1.5, label=label,
+                 path_effects=[pe.Stroke(linewidth=2.5, foreground='k'), pe.Normal()])
 
     angles = np.array([])
     for wi in W_0:
@@ -534,6 +556,7 @@ def plot_bases(bases, fax=None, save_path=None, scale_rows=True):
         plt.savefig(save_path,dpi=300)
     return f, ax
 
+
 def plot_figure3a(angles,labels,density=True,\
                    save_path=None,ax=None):
     """Reproduces figure 3a of the NIPS16 paper
@@ -561,7 +584,8 @@ def plot_figure3a(angles,labels,density=True,\
         h,b = np.histogram(angles[i],np.arange(0,91))
         if density:
              h= h/np.sum(h)
-        ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i])
+        ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i],
+                path_effects=[pe.Stroke(linewidth=3, foreground='k'), pe.Normal()])
     ax.set_yscale('log')
     if not density:
         ax.set_ylabel('Counts')
@@ -579,6 +603,7 @@ def plot_figure3a(angles,labels,density=True,\
     else:
         if show:
             plt.show()
+
 
 def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     """Reproduces figure 3 of the NIPS16 paper
@@ -600,7 +625,6 @@ def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     #if not given, compute bases
     if bases is None:
         X = ds.generate_data(demo_n=5)[1]
-        print X.shape
         bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
     #compute the angles
     n_sources = bases.shape[1]
@@ -692,6 +716,7 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .5),
                         transform=auxa.transData._b, zorder=-1))
     return auxa
 
+
 def get_Gabor_params(bases):
     """Fit Gabor funcions to a set of basis
     bases: array
@@ -707,6 +732,7 @@ def get_Gabor_params(bases):
         w = w.reshape((n_sources, l, l)).T
         params.append(fitter.fit(w))
     return params
+
 
 def plot_GaborFit_xy(params, n_pixels, color=.5,
                      save_path=None,
@@ -761,6 +787,7 @@ def plot_GaborFit_xy(params, n_pixels, color=.5,
     else:
         pass#plt.show()
 
+
 def plot_GaborFit_polar(params,color=.5,save_path=None, 
                         figsize=None):
     """Plot Gabor parameters using a polar plot: 
@@ -798,6 +825,7 @@ def plot_GaborFit_polar(params,color=.5,save_path=None,
         plt.savefig(save_path,dpi=300)
     else:
         pass#plt.show()
+
 
 def plot_GaborFit_envelope(params, color=.5, save_path=None,
                            ax=None, figsize=None):
