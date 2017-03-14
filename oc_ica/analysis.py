@@ -157,14 +157,14 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                                                                            n_sources, k,
                                                                            '_'.join(priors))
     a_file = 'a_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC, '_'.join(priors))
-    print a_file
-    print fit_folder
+    print(a_file)
+    print(fit_folder)
     fit_files = sorted(glob.glob(os.path.join(base_folder, fit_folder,
         'comparison*.h5')))
     sc_fits = None
     models = [f.split('.')[-2].split('-')[-1] for f in fit_files]
-    print len(models), models
-    print ''
+    print(len(models), models)
+    print('')
 
     with h5py.File(os.path.join(base_folder, a_file), 'r') as f:
         A_array = f['A_array'].value

@@ -86,7 +86,7 @@ class Optimizer(object):
             epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
             W_norm = T.sqrt(epssumsq)
             Wn = W / W_norm
-            print 'transform'
+            print('transform')
         else:
             Wn = W
         
@@ -218,7 +218,7 @@ class LBFGSB(Optimizer):
             epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
             W_norm = T.sqrt(epssumsq)
             Wn = W / W_norm
-            print 'setup'
+            print('setup')
         else:
             Wn = W
 

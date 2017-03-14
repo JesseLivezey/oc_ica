@@ -56,12 +56,10 @@ def generate_imagePatches(datasetPath,patch_size=8,n_patches=200000,\
     with h5py.File('%s/%s_patches_pca_%i.h5'%(path,name,patch_size),'w') as f:
         for i in xrange(2):
             images = IMAGES['%s'%parts[i]].value
-            print images.shape
             max_patches = int(np.ceil(n_patches/images.shape[0]))
             pe = image.PatchExtractor(patch_size=(patch_size, patch_size),
                                     max_patches=max_patches,random_state=rng)
             patches = pe.transform(images)
-            print patches.shape
             patches = patches[:n_patches].reshape((n_patches,patches.shape[-1]**2)).T
             if i==0:
                 patches_mean = patches.mean(axis=-1, keepdims=True)
@@ -182,8 +180,7 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
         
     """
     if rng==None:
-        print '\nRandom seed!'
-        rng = np.random.RandomState(np.random.randint(100000))
+        rng = np.random.RandomState(100000)
 
     if n_sources==None:
         n_sources = 64
@@ -210,7 +207,6 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
 
     if demo_n==1:
         images = loadmat('IMAGES_RAW.mat')['IMAGESr']
-        print images.shape
         im_size = int(np.sqrt(n_mixtures))
         patches = image.PatchExtractor(patch_size=(im_size, im_size),\
                                        max_patches=total_samples//images.shape[-1],
