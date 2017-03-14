@@ -21,7 +21,7 @@ parser.add_argument('--a', '-a', type=str, default=None)
 parser.add_argument('--k', '-k', type=int, default=None)
 parser.add_argument('--generate', '-g', default=False, action='store_true')
 parser.add_argument('--sgd_COHERENCE', '-s', default=False, action='store_true')
-parser.add_argument('--keep_max', '-x', default=False, action='store_true')
+parser.add_argument('--keep_max', '-e', default=False, action='store_true')
 args = parser.parse_args()
 
 n_mixtures = args.n_mixtures
