@@ -29,10 +29,10 @@ scratch = os.getenv('SCRATCH', '')
 
 n_mixtures = patch_size**2           
 n_sources = int(float(OC) * n_mixtures)
-total_samples = n_mixtures * n_sources
+total_samples = 10 * n_mixtures * n_sources
 rng = np.random.RandomState(20170110)
 if n_mixtures == 64 and n_sources == 128:
-    sparsity = 37.
+    sparsity = 38.
 elif n_mixtures == 256 and n_sources == 512:
     sparsity = 150.
 else:

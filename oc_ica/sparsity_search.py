@@ -3,7 +3,7 @@ import numpy as np
 
 
 def sparsity_search(model_c, sparsity, X, log_lambd_range=None,
-                    n_iter=20, tol=1e-3, **model_kwargs):
+                    n_iter=20, tol=1e-2, **model_kwargs):
     """
     Does a binary search in log_lambd_range to match sparsity.
     Expects sparsity to be a monotonically decreasing function of
