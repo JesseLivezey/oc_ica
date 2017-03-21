@@ -142,10 +142,15 @@ def evaluate_dgcs(initial_conditions, degeneracy_controls, n_sources,
     return W, W_0
 
 def compute_angles(w):
-    w = normalize_W(w)
-    gram = w.dot(w.T)
-    gram_off_diag = gram[np.tri(gram.shape[0], k=-1, dtype=bool)]
-    return cos2deg(gram_off_diag)
+    angles = np.array([], dtype=float)
+    if w.ndim == 2:
+        w = w[np.newaxis, ...]
+    for wp in w:
+        wp = normalize_W(wp)
+        gram = wp.dot(wp.T)
+        gram_off_diag = gram[np.tri(gram.shape[0], k=-1, dtype=bool)]
+        angles = np.concatenate([angles, cos2deg(gram_off_diag)], axis=0)
+    return angles
 
 def cos2deg(cos):
     return np.arccos(abs(cos))/np.pi*180.

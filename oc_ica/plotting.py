@@ -22,7 +22,7 @@ from oc_ica import utils
 #reload(utils)
 from oc_ica.utils import tile_raster_images as tri
 from oc_ica import analysis
-#reload(analysis)
+reload(analysis)
 
 import oc_ica.models.ica as ocica
 #reload(ocica)
@@ -175,7 +175,7 @@ def plot_figure2b(save_path=None, n_iter=10):
     return f, ax
 
 
-def plot_figure2cd(panel='c', eps=1e-2,
+def plot_figure2de(panel, eps=1e-2,
                    legend=False, save_path=None):
     """
     Reproduces the panels c and d of figure 2.
@@ -183,25 +183,25 @@ def plot_figure2cd(panel='c', eps=1e-2,
     Parameters
     ----------
     panel: string, optional
-         Which panel, options: 'c', 'd' 
+         Which panel, options: 'd', 'e' 
     save_path: string, optional
          figure_path+figure_name+.format to store the figure. 
          If figure is stored, it is not displayed.   
     """
     formatter = mpl.ticker.StrMethodFormatter('{x:.2g}')
-    fig = plt.figure('costs',figsize=(3,3))
+    fig = plt.figure('costs',figsize=(3,1.5))
     fig.clf()
     ax = plt.axes([.16,.15,.8,.81])
     costs = ['2', 'COULOMB', 'RANDOM', '4']
     col = np.linspace(0,1,len(costs))
-    if panel=='c':
+    if panel=='d':
         xx = np.linspace(.6, 1., 100)
         fun = [lambda x: x,
                lambda x: x/(1.+eps-x**2)**(3/2),
                lambda x: (2*x)/(1.+eps-x**2),
                lambda x: x**3] 
         ax.set_yscale('log')
-    elif panel=='d':
+    elif panel=='e':
         xx = np.linspace(-.2, .2, 100)
         fun = [lambda x: x,
                lambda x: x/(1.+eps-x**2)**(3/2),
@@ -216,10 +216,10 @@ def plot_figure2cd(panel='c', eps=1e-2,
                 label=styles.labels[cost],
                 path_effects=[pe.Stroke(linewidth=3, foreground='k'), pe.Normal()])
 
-    if panel == 'c':
+    if panel == 'd':
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
-    elif panel=='d':
+    elif panel=='e':
         ax.spines['left'].set_position('zero')
         ax.spines['right'].set_visible(False)
         ax.spines['bottom'].set_position('zero')
@@ -234,13 +234,13 @@ def plot_figure2cd(panel='c', eps=1e-2,
     for spine in ax.spines.values():
         spine.set_zorder(-10)
 
-    if panel=='c':
+    if panel=='d':
         ax.set_ylim([1e-1, 5e1])
         ax.set_xticks(np.arange(0.6, 1.1, .2))
         ax.xaxis.set_major_formatter(formatter)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',labelpad=-4)#20)
         ax.set_xlabel(r'$\cos\,\theta$')
-    elif panel=='d':
+    elif panel=='e':
         ax.set_ylim(-.1,.1)
         ax.set_xticks(np.arange(-.2,.21,.2))
         ax.xaxis.set_major_formatter(formatter)
@@ -263,7 +263,7 @@ def plot_figure2cd(panel='c', eps=1e-2,
     return fig, ax
 
 
-def plot_figure_flat(save_path=None, n_iter=10):
+def plot_figure2c(save_path=None, n_iter=10):
     """
     Parameters:
     ----------
@@ -557,8 +557,10 @@ def plot_bases(bases, fax=None, save_path=None, scale_rows=True):
     return f, ax
 
 
-def plot_figure3a(angles,labels,density=True,\
-                   save_path=None,ax=None):
+def plot_figure3ab(angles, models, xticks=None,
+                   show_label=None,
+                   density=True,
+                   save_path=None, ax=None):
     """Reproduces figure 3a of the NIPS16 paper
     Parameters:
     ----------
@@ -573,18 +575,27 @@ def plot_figure3a(angles,labels,density=True,\
     figname: string, optional
            Name of the figure
     """
+    if xticks is None:
+        xticks = [0, 90]
+    if show_label is None:
+        show_label = [True] * len(models)
     show = False
     if ax is None:
         fig = plt.figure('angle_hist',figsize=(4,4))
         fig.clf()
         ax = plt.axes([.15,.1,.8,.8])
         show = True
-    col = np.linspace(0,1,len(labels))
-    for i in xrange(len(labels)):
-        h,b = np.histogram(angles[i],np.arange(0,91))
+    for ii, m in enumerate(models):
+        h,b = np.histogram(angles[ii],np.arange(0,91))
         if density:
              h= h/np.sum(h)
-        ax.plot(b[:-1],h,drawstyle='steps',color=cm.viridis(col[i]),lw=1.5,label=labels[i],
+        if show_label[ii]:
+            label = styles.labels[m]
+        else:
+            label = None
+        c = styles.colors[m]
+        fmt = styles.line_styles[m]
+        ax.plot(b[:-1], h, fmt, drawstyle='steps', color=c, lw=2, label=label,
                 path_effects=[pe.Stroke(linewidth=3, foreground='k'), pe.Normal()])
     ax.set_yscale('log')
     if not density:
@@ -594,18 +605,13 @@ def plot_figure3a(angles,labels,density=True,\
         ax.set_ylabel('Density',labelpad=-10)
         ax.set_yticks([1e-5,1e0])
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
-    ax.set_xlim(20,90)
-    ax.legend(loc='best', frameon=False,ncol=1)
+    ax.legend(loc='upper left', frameon=False,ncol=1)
     ax.set_xlabel(r'$\theta$',labelpad=0)
-    ax.set_xticks([20,55,90])
-    if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        if show:
-            plt.show()
+    ax.set_xticks(xticks)
+    ax.set_xlim(xticks[0], xticks[-1])
 
 
-def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
+def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
     """Reproduces figure 3 of the NIPS16 paper
     Parameters:
     ----------
@@ -621,28 +627,43 @@ def plot_figure3(bases=None,oc=2,lambd=10.,save_path=None):
     figname: string, optional
            Name of the figure
     """
-    costs = ['L2','COULOMB','RANDOM','L4']
-    #if not given, compute bases
-    if bases is None:
-        X = ds.generate_data(demo_n=5)[1]
-        bases = learn_bases(X, costs=costs, oc=oc,lambd=lambd)
     #compute the angles
-    n_sources = bases.shape[1]
-    angles = np.zeros((len(costs),(n_sources**2-n_sources)/2))
-    for ii in xrange(len(costs)):
-        angles[ii] = analysis.compute_angles(bases[ii])
     #generate figure
-    f, (ax_angles, ax_bases) = plt.subplots(1, 2, figsize=(6,3))
-    labels = [r'$L_2$','Coulomb','Random prior',r'$L_4$']
+    f = plt.figure(figsize=(6, 8))
+    ax_angles1 = plt.subplot2grid((3, 2), (0, 0))
+    ax_angles2 = plt.subplot2grid((3, 2), (0, 1))
+    ax_bases = plt.subplot2grid((3, 2), (1, 0), colspan=2, rowspan=2)
+
     #figure3a
-    #ax_angles = plt.axes([.125,.15,.35,.7])
-    plot_figure3a(angles, labels, density=True, ax=ax_angles)
+    n_sources = bases1.shape[-2]
+    n_iter = bases1.shape[1]
+    angles = np.zeros((len(models1),n_iter * (n_sources**2-n_sources)/2))
+    for ii, b in enumerate(bases1):
+        angles[ii] = analysis.compute_angles(b)
+    plot_figure3ab(angles, models1, density=True, ax=ax_angles1)
+
+    #figure3b
+    n_sources = bases2.shape[-2]
+    n_iter = bases2.shape[1]
+    angles = np.zeros((len(models2),n_iter * (n_sources**2-n_sources)/2))
+    for ii, b in enumerate(bases2):
+        angles[ii] = analysis.compute_angles(b)
+    show_label = [False] * len(models2)
+    show_label[-1] = True
+    show_label[-3] = True
+    plot_figure3ab(angles, models2, xticks=[45, 90], show_label=show_label,
+                   density=True, ax=ax_angles2)
+
     #figure3b
     #ax_bases = plt.axes([.55,.15,.4,.8])
-    w = bases[-1]
+    w = bases1[bases_idx]
+    if w.ndim == 3:
+        w = w[0]
     plot_bases(w, fax=(f, ax_bases)) #, scale_rows=False)
-    f.text(.01,.9,'a)',fontsize=14)
-    f.text(.5,.9,'b)',fontsize=14)
+    f.text(.01, .98, 'a)', fontsize=14)
+    f.text(.5, .98, 'b)', fontsize=14)
+    f.text(.01, .65, 'c)', fontsize=14)
+    plt.tight_layout()
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
