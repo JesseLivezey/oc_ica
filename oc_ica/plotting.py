@@ -122,8 +122,8 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None):
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['pathological']
-    degeneracy_controls = ['QUASI-ORTHO', '2', 'COHERENCE_SOFT', 'COULOMB',
-                           'RANDOM', '4']
+    degeneracy_controls = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT', 'COULOMB',
+                           'RANDOM']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -156,8 +156,8 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None):
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
-    degeneracy_controls = ['QUASI-ORTHO', 'COHERENCE_SOFT',
-                           'RANDOM', 'COULOMB', '2', '4']
+    degeneracy_controls = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT',
+                           'RANDOM', 'COULOMB']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -237,7 +237,7 @@ def plot_figure2de(panel, eps=1e-2,
         fig = plt.figure('costs',figsize=(3,1.5))
         fig.clf()
         ax = plt.axes([.16,.15,.8,.81])
-    costs = ['2', 'COULOMB', 'RANDOM', '4']
+    costs = ['2', '4', 'COULOMB', 'RANDOM']
     col = np.linspace(0,1,len(costs))
     if panel=='d':
         xx = np.linspace(.6, 1., 100)
