@@ -18,7 +18,7 @@ from oc_ica import utils
 #reload(utils)
 from oc_ica.utils import tile_raster_images as tri
 from oc_ica import analysis
-reload(analysis)
+#reload(analysis)
 
 import oc_ica.models.ica as ocica
 #reload(ocica)
@@ -27,10 +27,10 @@ from oc_ica import datasets as ds
 from oc_ica import gabor_fit as fit
 #reload(fit)
 from oc_ica import styles
-reload(styles)
+#reload(styles)
 
 
-def plot_figure1c(save_path=None):
+def plot_figure1c(save_path=None, fax=None):
     sin = np.sin
     cos = np.cos
     sqrt = np.sqrt
@@ -56,9 +56,11 @@ def plot_figure1c(save_path=None):
     for ii, f in enumerate(l4_evals):
         l4_vals[ii] = f(thetas)
 
-    f, ax = plt.subplots(1,
-                         sharex=True,
-                         figsize=(5, 2))
+    if fax is None:
+        f, ax = plt.subplots(1,
+                             figsize=(5, 2))
+    else:
+        f, ax = fax
     for ii, e in enumerate(l2_vals):
         if ii == 0:
             label = styles.labels['2']
@@ -93,14 +95,112 @@ def plot_figure1c(save_path=None):
     ax.legend(loc='lower right', frameon=False, fontsize=styles.legend_fontsize)
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
 
-    f.tight_layout()
+    if fax is None:
+        f.tight_layout()
 
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
+
+def plot_figure1(save_path=None):
+    def add_arrow(ax, dx, dy, c):
+        return ax.add_patch(mpl.patches.FancyArrow(0, 0, dx, dy, width=.02,
+                                                length_includes_head=True, head_width=.1,
+                                                head_length=.1,
+                                                facecolor=c, edgecolor=c))
+    def add_arrow(ax, dx, dy, c):
+        return ax.quiver(0, 0, dx, dy,angles='xy', scale_units='xy', scale=1, width=.02,
+                                                facecolor=c, edgecolor=c,
+                        headaxislength=3, headlength=3)
+
+    def add_arc(ax, r, theta1, theta2, c):
+        return ax.add_patch(mpl.patches.Arc((0, 0), r, r, theta1=theta1, theta2=theta2,
+                                              facecolor='none', edgecolor=c,
+                                              lw=2*styles.lw))
+    dtheta1 = .2
+    dtheta2 = np.pi/4
+    figsize = (4, 2.5)
+    xlim = [-np.cos(dtheta2)-.05, 1.05]
+    ylim = [-.05, 1.05]
+    ratio = (np.diff(xlim)/np.diff(ylim))[0]
+
+    top_lr_edge = .01
+    bot_l_edge = .1
+    bot_r_edge = .025
+    top_edge = top_lr_edge
+    bot_edge = .15
+    top_gap = .001
+    mid_gap = .03
+
+    top_lr_edge_x = top_lr_edge * figsize[0]
+    bot_l_edge_x = bot_l_edge * figsize[0]
+    bot_r_edge_x = bot_r_edge * figsize[0]
+    top_edge_y = top_edge * figsize[1]
+    bot_edge_y = bot_edge * figsize[1]
+    top_gap_x = top_gap * figsize[0]
+    mid_gap_y = mid_gap * figsize[1]
+
+    width_top = figsize[0]/2-top_lr_edge_x-top_gap_x/2
+    width_bot = figsize[0]-bot_l_edge_x-bot_r_edge_x
+    height_top = width_top / ratio
+
+    width_top = width_top / figsize[0]
+    height_top = height_top / figsize[1]
+    width_bot = width_bot / figsize[0]
+
+    f = plt.figure(figsize=figsize)
+    ax1 = f.add_axes((top_lr_edge, 1-height_top+mid_gap/2, width_top, height_top))
+    ax2 = f.add_axes((.5+top_gap/2, 1-height_top+mid_gap/2, width_top, height_top))
+    ax3 = f.add_axes((bot_l_edge, bot_edge,
+                      1.-bot_l_edge-bot_r_edge,
+                      1-bot_edge-mid_gap-top_edge-height_top))
+
+    ax1.set_xlim(xlim)
+    ax1.set_ylim(ylim)
+    ax1.set_axis_off()
+
+
+    add_arrow(ax1, 1, 0, 'k')
+    add_arrow(ax1, 0, 1, 'k')
+    add_arrow(ax1, np.cos(dtheta1), np.sin(dtheta1), 'b')
+    add_arrow(ax1, np.cos(np.pi/2+dtheta1), np.sin(np.pi/2+dtheta1), 'b')
+    a = add_arc(ax1, .7, 0, dtheta1*180/np.pi, 'r')
+    a.set_zorder(0)
+    a = add_arc(ax1, .3, 0, 90, 'k')
+    a.set_zorder(0)
+    add_arc(ax1, .5, dtheta1*180/np.pi, 90+dtheta1*180/np.pi, 'b')
+    ax1.text(.1, -.15, r'$\theta_1$', fontsize=styles.label_fontsize, color='k')
+    ax1.text(.05, .3, r'$\theta_3$', fontsize=styles.label_fontsize, color='b')
+    ax1.text(.3, -.15, r'$\theta_2$', fontsize=styles.label_fontsize, color='r')
+    ax1.add_patch(mpl.patches.Circle((0, 0), .01, color='b'))
+
+    ax2.set_xlim(xlim)
+    ax2.set_ylim(ylim)
+    ax2.set_axis_off()
+
+
+    add_arrow(ax2, 1, 0, 'k')
+    add_arrow(ax2, 0, 1, 'k')
+    add_arrow(ax2, np.cos(dtheta2), np.sin(dtheta2), 'b')
+    add_arrow(ax2, np.cos(np.pi/2+dtheta2), np.sin(np.pi/2+dtheta2), 'b')
+    a = add_arc(ax2, .7, 0, dtheta2*180/np.pi, 'r')
+    a.set_zorder(0)
+    a = add_arc(ax2, .3, 0, 90, 'k')
+    a.set_zorder(0)
+    add_arc(ax2, .5, dtheta2*180/np.pi, 90+dtheta2*180/np.pi, 'b')
+    ax2.text(.1, -.15, r'$\theta_1$', fontsize=styles.label_fontsize, color='k')
+    ax2.text(.05, .3, r'$\theta_3$', fontsize=styles.label_fontsize, color='b')
+    ax2.text(.3, -.15, r'$\theta_2$', fontsize=styles.label_fontsize, color='r')
+    ax2.add_patch(mpl.patches.Circle((0, 0), .01, color='b'))
+
+    plot_figure1c(fax=(f, ax3))
+
+    f.text(.00, .93, 'a)', fontsize=styles.letter_fontsize)
+    f.text(.5, .93, 'b)', fontsize=styles.letter_fontsize)
+    f.text(.00, .5, 'c)', fontsize=styles.letter_fontsize)
+    if save_path is not None:
+        plt.savefig(save_path)
     else:
         plt.show()
-
-    return f, ax
 
 
 def plot_figure2a(save_path=None, n_iter=10, faxes=None):
@@ -352,6 +452,8 @@ def plot_figure2(save_path=None, n_iter=10):
     f.tight_layout(pad=0, w_pad=0, h_pad=0)
     if save_path is not None:
         plt.savefig(save_path)
+    else:
+        plt.show()
 
 
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
