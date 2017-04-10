@@ -86,7 +86,6 @@ class Optimizer(object):
             epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
             W_norm = T.sqrt(epssumsq)
             Wn = W / W_norm
-            print('transform')
         else:
             Wn = W
         
@@ -171,7 +170,6 @@ class Optimizer(object):
         elif degeneracy is None:
             error = None
         else:
-            print(degeneracy)
             raise ValueError
 
         if ((degeneracy is not None) and
@@ -218,7 +216,6 @@ class LBFGSB(Optimizer):
             epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
             W_norm = T.sqrt(epssumsq)
             Wn = W / W_norm
-            print('setup')
         else:
             Wn = W
 

@@ -11,23 +11,24 @@ from mpl_toolkits.axisartist import angle_helper
 from mpl_toolkits.axisartist.grid_finder import MaxNLocator
 from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 import matplotlib.patheffects as pe
+from imp import reload
 
 
 
 from oc_ica import utils
-#reload(utils)
+reload(utils)
 from oc_ica.utils import tile_raster_images as tri
 from oc_ica import analysis
-#reload(analysis)
+reload(analysis)
 
 import oc_ica.models.ica as ocica
-#reload(ocica)
+reload(ocica)
 from oc_ica import datasets as ds
-#reload(ds)
+reload(ds)
 from oc_ica import gabor_fit as fit
-#reload(fit)
+reload(fit)
 from oc_ica import styles
-#reload(styles)
+reload(styles)
 
 
 def plot_figure1c(save_path=None, fax=None):
@@ -129,7 +130,7 @@ def plot_figure1(save_path=None):
     top_edge = top_lr_edge
     bot_edge = .15
     top_gap = .001
-    mid_gap = .03
+    mid_gap = .04
 
     top_lr_edge_x = top_lr_edge * figsize[0]
     bot_l_edge_x = bot_l_edge * figsize[0]
@@ -243,7 +244,8 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None):
         plt.savefig(save_path)
 
 
-def plot_figure2b(save_path=None, n_iter=10, ax=None):
+def plot_figure2b(save_path=None, n_iter=10, ax=None,
+                  add_ylabel=False):
     """Reproduces figure 2a of the NIPS16 paper
     Parameters:
     ----------
@@ -268,7 +270,7 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None):
         W_0[ii] = W_0p
 
     ax = plot_angles_1column(W, W_0, degeneracy_controls,
-                             density=True, ax=ax)
+                             ax=ax, add_ylabel=add_ylabel)
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
     ax.xaxis.set_ticks_position('bottom')
@@ -290,8 +292,7 @@ def plot_figure2c(save_path=None, n_iter=10, ax=None):
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
-    degeneracy_controls = ['COULOMB',
-                           'RANDOM', 'COULOMB_F', 'RANDOM_F']
+    degeneracy_controls = ['COULOMB', 'RANDOM', 'COULOMB_F', 'RANDOM_F']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -302,7 +303,7 @@ def plot_figure2c(save_path=None, n_iter=10, ax=None):
         W_0[ii] = W_0p
 
     ax = plot_angles_1column(W, W_0, degeneracy_controls,
-                        plot_init=False, density=True,
+                        plot_init=False,
                         pe_style=[True, True, False, False],
                         ax=ax)
     ax.set_xlim(81.5, 90)
@@ -337,7 +338,7 @@ def plot_figure2de(panel, eps=1e-2,
         fig = plt.figure('costs',figsize=(3,1.5))
         fig.clf()
         ax = plt.axes([.16,.15,.8,.81])
-    costs = ['2', '4', 'COULOMB', 'RANDOM']
+    costs = ['2', 'COULOMB', 'RANDOM', '4']
     col = np.linspace(0,1,len(costs))
     if panel=='d':
         xx = np.linspace(.6, 1., 100)
@@ -416,7 +417,7 @@ def plot_figure2de(panel, eps=1e-2,
 
 
 def plot_figure2(save_path=None, n_iter=10):
-    f = plt.figure(figsize=(5, 5))
+    f = plt.figure(figsize=(5, 4.5))
     left_gap = .0825
     right_gap = .025
     bottom_gap = .04
@@ -432,17 +433,17 @@ def plot_figure2(save_path=None, n_iter=10):
     ax6 = plt.subplot2grid((4, 4), (3, 2), rowspan=1, colspan=2)
     ax1.set_zorder(ax2.get_zorder()+1)
     plot_figure2a(n_iter=n_iter, faxes=(f, (ax1, ax2)))
-    plot_figure2b(n_iter=n_iter, ax=ax3)
+    plot_figure2b(n_iter=n_iter, ax=ax3, add_ylabel=False)
     plot_figure2c(n_iter=n_iter, ax=ax4)
     plot_figure2de('d', ax=ax5)
     plot_figure2de('e', add_xlabel=True, ax=ax6)
     for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
         ax.tick_params(labelsize=styles.ticklabel_fontsize)
         ax.tick_params(pad=-2)
-    x1 = .01
+    x1 = .0
     x2 = .5
-    y1 = .94
-    y2 = .45
+    y1 = .945
+    y2 = .46
     y3 = .24
     f.text(x1, y1, 'a)', fontsize=styles.letter_fontsize)
     f.text(x2, y1, 'b)', fontsize=styles.letter_fontsize)
@@ -457,9 +458,9 @@ def plot_figure2(save_path=None, n_iter=10):
 
 
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
-                        density=True, plot_init=True,
+                        plot_init=True,
                         pe_style=None, legend=False,
-                        ax=None):
+                        ax=None, add_ylabel=True):
     """
     Plots angle distributions of different costs and initial conditions.  
     Parameters:
@@ -480,8 +481,6 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
-    density: boolean, optional
-           Use the density
     """
     n_costs = W.shape[0]
     col = np.linspace(0, 1, n_costs-1)
@@ -500,10 +499,9 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         angles = np.array([])
         for wi in ws:
             angles = np.concatenate((analysis.compute_angles(wi), angles))
-        h, b = np.histogram(angles,np.arange(0,91)) 
-        if density:
-            h = h*1./np.sum(h)
-        b = np.arange(1, 91)
+        h, b = np.histogram(angles, styles.angle_bins) 
+        b = b[1:]
+        h = h*1./np.sum(h)
         st = styles.line_styles[cost]
         c = styles.colors[cost]
         label = styles.labels[cost]
@@ -511,7 +509,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         if pe_style is not None:
             if not pe_style[ii]:
                 pe_arg = None
-        ax.plot(b, h, st, drawstyle='steps-pre', color=c,
+        ax.plot(b, h, st, drawstyle=styles.ds, color=c,
                 lw=styles.lw, label=label,
                 path_effects=pe_arg)
 
@@ -522,35 +520,26 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         angles = np.array([])
         for wi in W_0:
             angles = np.concatenate((analysis.compute_angles(wi), angles))
-        h0, b0 = np.histogram(angles, np.arange(0,91))
-        if density:
-            h0 = h0 / np.sum(h0)
-        b0 = np.arange(1, 91)
-        ax.plot(b0, h0, styles.line_styles['INIT'], drawstyle='steps-pre',
+        h0, b0 = np.histogram(angles, styles.angle_bins)
+        b0 = b0[1:]
+        h0 = h0 / np.sum(h0)
+        ax.plot(b0, h0, styles.line_styles['INIT'], drawstyle=styles.ds,
                 color=styles.colors['INIT'], lw=styles.lw)
 
     ax.set_yscale('log')
     ax.set_xlim(0, 90) 
       
-    if density:
-        ax.set_ylim(1e-4, 1e0)
-    else:
-        ax.set_ylim(1e0, 1e4) 
+    ax.set_ylim(1e-4, 1e0)
     if legend:
         ax.legend(loc='upper left',frameon=False,ncol=1,
                 fontsize=styles.legend_fontsize)
     ax.set_xlabel(r'$\theta$',labelpad=-10, fontsize=styles.label_fontsize)
-    if density:
-        ax.set_ylabel('Density',labelpad=-2, fontsize=styles.label_fontsize)
-    else:
-        ax.set_ylabel('Counts', fontsize=styles.label_fontsize)
+    if add_ylabel:
+        ax.set_ylabel('Probability',labelpad=-2, fontsize=styles.label_fontsize)
     ax.set_xlim(45, 90)
     ax.set_xticks([45, 90])
 
-    if density:
-        ax.set_yticks([1e-4, 1e-2, 1e0])
-    else:
-        ax.set_yticks([1e0, 1e2, 1e4])
+    ax.set_yticks([1e-4, 1e-2, 1e0])
     
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     """
@@ -564,8 +553,8 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     return ax
 
 
-def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
-                            save_path=None, density=True, legend=True,
+def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
+                            save_path=None, legend=True,
                             faxes=None):
     """Plots angle distributions of different costs and initial conditions  
     Parameters:
@@ -582,14 +571,10 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
     save_path: string, optional
            Figure_path+figure_name+.format to store the figure. 
            If figure is stored, it is not displayed.   
-    density: boolean, optional
-           Use the density
     legend: boolean, optional
            Add a legend to the plot 
     """
-    n_costs = W.shape[0]
-    col = np.linspace(0, 1, n_costs-1)
-    col = np.hstack((np.zeros(1), col))
+
     if faxes is None:
         figsize=(3, 3)
         f, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
@@ -602,31 +587,28 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
         angles = np.array([])
         for wi in ws:
             angles = np.concatenate((analysis.compute_angles(wi), angles))
-        h, b = np.histogram(angles,np.arange(0,91)) 
-        if density:
-            h = h*1./np.sum(h)
-        b = np.arange(1, 91)
+        h, b = np.histogram(angles, styles.angle_bins) 
+        b = b[1:]
+        h = h*1./np.sum(h)
         c = styles.colors[cost]
         label = styles.labels[cost]
         st = styles.line_styles[cost]
-        ax1.plot(b[:n], h[:n], st, drawstyle='steps-pre',
+        ax1.plot(b, h, st, drawstyle=styles.ds,
                  color=c, lw=styles.lw, label=label,
                  path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-    
-        ax2.plot(b[n:], h[n:], st, drawstyle='steps-pre',
+        ax2.plot(b, h, st, drawstyle=styles.ds,
                  color=c, lw=styles.lw, label=label,
                  path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
     angles = np.array([])
     for wi in W_0:
         angles = np.concatenate((analysis.compute_angles(wi), angles))
-    h0, b0 = np.histogram(angles, np.arange(0,91))
-    if density:
-        h0 = h0 / np.sum(h0)
-    b0 = np.arange(1, 91)
-    ax1.plot(b0[:n], h0[:n], styles.line_styles['INIT'], drawstyle='steps-pre',
+    h0, b0 = np.histogram(angles, styles.angle_bins)
+    b0 = b0[1:]
+    h0 = h0 / np.sum(h0)
+    ax1.plot(b0, h0, styles.line_styles['INIT'], drawstyle=styles.ds,
              color=styles.colors['INIT'], lw=styles.lw)
-    ax2.plot(b0[n:],h0[n:], styles.line_styles['INIT'], drawstyle='steps-pre',
+    ax2.plot(b0,h0, styles.line_styles['INIT'], drawstyle=styles.ds,
              color=styles.colors['INIT'], lw=styles.lw)
 
     # hide the spines between ax and ax2
@@ -642,37 +624,25 @@ def plot_angles_broken_axis(W,W_0,costs,n=45, cmap=plt.cm.viridis,
     ax2.set_yscale('log')
     ax2.set_xlim(0,90) 
     
-    if density:
-        ax1.set_ylim(1e-4,1e0)
-    else:
-        ax1.set_ylim(1e0,1e4) 
+    ax1.set_ylim(1e-4,1e0)
 
     if legend:
         ax1.legend(loc='upper left', frameon=False,ncol=1,
                 fontsize=styles.legend_fontsize)
 
-    if density:
-        ax1.set_ylabel('Density',labelpad=-2, fontsize=styles.label_fontsize)
-    else:
-        ax1.set_ylabel('Counts', fontsize=styles.label_fontsize)
+    ax1.set_ylabel('Probability',labelpad=-2, fontsize=styles.label_fontsize)
 
     ax1.set_xlim(0,11)
     ax1.set_xticks([0,10])
 
-    if density:
-        ax1.set_yticks([1e-4,1e-2,1e0])
-    else:
-        ax1.set_yticks([1e0,1e2,1e4])
+    ax1.set_yticks([1e-4,1e-2,1e0])
 
     ax1.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
     ax2.set_xlim(79,90)
     ax2.set_xticks([80,90])
  
-    if density:
-        ax2.set_yticks([1e-4,1e-2,1e0])
-    else:
-        ax2.set_yticks([1e0,1e2,1e4])
+    ax2.set_yticks([1e-4,1e-2,1e0])
 
     ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
@@ -727,8 +697,8 @@ def plot_bases(bases, fax=None, save_path=None, scale_rows=True):
 
 def plot_figure3ab(angles, models, xticks=None,
                    show_label=None,
-                   density=True,
-                   save_path=None, ax=None):
+                   save_path=None, ax=None,
+                   add_ylabel=False):
     """Reproduces figure 3a of the NIPS16 paper
     Parameters:
     ----------
@@ -754,24 +724,20 @@ def plot_figure3ab(angles, models, xticks=None,
         ax = plt.axes([.15,.1,.8,.8])
         show = True
     for ii, m in enumerate(models):
-        h,b = np.histogram(angles[ii],np.arange(0,91))
-        if density:
-             h= h/np.sum(h)
+        h, b = np.histogram(angles[ii], styles.angle_bins)
+        h= h/np.sum(h)
         if show_label[ii]:
             label = styles.labels[m]
         else:
             label = None
         c = styles.colors[m]
         fmt = styles.line_styles[m]
-        ax.plot(b[:-1], h, fmt, drawstyle='steps-pre', color=c, lw=styles.lw, label=label,
-                path_effects=[pe.Stroke(linewidth=styles.lw, foreground='k'), pe.Normal()])
+        ax.plot(b[1:], h, fmt, drawstyle=styles.ds, color=c, lw=styles.lw, label=label,
+                path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
     ax.set_yscale('log')
-    if not density:
-        ax.set_ylabel('Counts', fontsize=styles.label_fontsize)
-        ax.set_yticks([1e0,1e2,1e4])
-    else:
-        ax.set_ylabel('Density',labelpad=-10, fontsize=styles.label_fontsize)
-        ax.set_yticks([1e-5,1e0])
+    if add_ylabel:
+        ax.set_ylabel('Probability',labelpad=-10, fontsize=styles.label_fontsize)
+    ax.set_yticks([1e-5,1e0])
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.legend(loc='upper left', frameon=False,ncol=1,
             fontsize=styles.legend_fontsize)
@@ -779,6 +745,7 @@ def plot_figure3ab(angles, models, xticks=None,
     ax.set_xticks(xticks)
     ax.set_xlim(xticks[0], xticks[-1])
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=0)
 
 
 def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
@@ -799,7 +766,7 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
     """
     #compute the angles
     #generate figure
-    f = plt.figure(figsize=(5, 5))
+    f = plt.figure(figsize=(4, 4))
     ax_angles1 = plt.subplot2grid((2, 2), (0, 0))
     ax_angles1.get_yaxis().set_tick_params(direction='out')
     ax_angles1.get_xaxis().set_tick_params(direction='out')
@@ -821,7 +788,8 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
                        int(np.around((n_sources**2-n_sources)/2.))))
     for ii, b in enumerate(bases1):
         angles[ii] = analysis.compute_angles(b)
-    plot_figure3ab(angles, models1, density=True, ax=ax_angles1)
+    plot_figure3ab(angles, models1, ax=ax_angles1,
+                   add_ylabel=True)
 
     #figure3b
     n_sources = bases2.shape[-2]
@@ -834,7 +802,7 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
     show_label[-1] = True
     show_label[-3] = True
     plot_figure3ab(angles, models2, xticks=[45, 90], show_label=show_label,
-                   density=True, ax=ax_angles2)
+                   ax=ax_angles2)
 
     #figure3b
     #ax_bases = plt.axes([.55,.15,.4,.8])
@@ -842,8 +810,8 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
     if w.ndim == 3:
         w = w[0]
     plot_bases(w, fax=(f, ax_bases)) #, scale_rows=False)
-    f.text(.01, .97, 'a)', fontsize=styles.letter_fontsize)
-    f.text(.5, .97, 'b)', fontsize=styles.letter_fontsize)
+    f.text(.01, .89, 'a)', fontsize=styles.letter_fontsize)
+    f.text(.49, .89, 'b)', fontsize=styles.letter_fontsize)
     f.text(.01, .45, 'c)', fontsize=styles.letter_fontsize)
     plt.tight_layout()
     if save_path is not None:
@@ -885,11 +853,13 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .75),
     a.axis["top"].major_ticklabels.set_axis_direction("top")
     a.axis["top"].label.set_axis_direction("top")
     a.axis['top'].major_ticklabels.set_pad(1)
+    a.axis['top'].major_ticklabels.set_size(styles.label_fontsize)
 
     # adjust y axis (r):
     a.axis["left"].set_axis_direction("bottom") # tick direction
     a.axis["right"].set_axis_direction("top") # tick direction
     a.axis["left"].toggle(ticklabels=ticklabels, label=bool(rlabel))
+    a.axis['left'].major_ticklabels.set_size(styles.label_fontsize)
 
     # add labels:
     if labely:
@@ -906,6 +876,10 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .75),
     # this has a side effect that the patch is drawn twice, and possibly over some other
     # artists. So, we decrease the zorder a bit to prevent this:
     a.patch.zorder = -2
+    a.tick_params(labelsize=styles.ticklabel_fontsize)
+    a.tick_params(pad=0)
+    auxa.tick_params(labelsize=styles.ticklabel_fontsize)
+    auxa.tick_params(pad=0)
 
     # add sector lines for both dimensions:
     thticks = grid_helper.grid_info['lon_info'][0]
@@ -1014,10 +988,10 @@ def plot_GaborFit_xy(params, n_pixels, model,
     ax.yaxis.set_ticks_position('left')
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=0)
     if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        pass#plt.show()
+        plt.savefig(save_path)
 
 
 def plot_GaborFit_polar(params, model, save_path=None, 
@@ -1058,11 +1032,11 @@ def plot_GaborFit_polar(params, model, save_path=None,
                 markeredgecolor='k',
                 alpha=.4,
                 ms=np.sqrt(stdx[ii] * stdy[ii]))
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=0)
 
     if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        pass#plt.show()
+        plt.savefig(save_path)
 
 
 def plot_GaborFit_envelope(params, model, save_path=None,
@@ -1111,7 +1085,9 @@ def plot_GaborFit_envelope(params, model, save_path=None,
     #ax.yaxis.set_label_position('right')
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
-    ax.tick_params(pad=1)
+    ax.minorticks_off()
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=0)
     if labelx:
         ax.set_xlabel(r'var[$\parallel$]', labelpad=-1, fontsize=styles.label_fontsize)
     else:
@@ -1120,11 +1096,8 @@ def plot_GaborFit_envelope(params, model, save_path=None,
         ax.set_ylabel(r'var[$\perp$]', labelpad=-5, fontsize=styles.label_fontsize)
     else:
         ax.set_yticklabels([])
-    ax.minorticks_off()
     if save_path is not None:
-        plt.savefig(save_path,dpi=300)
-    else:
-        pass#plt.show()
+        plt.savefig(save_path)
 
 
 def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
@@ -1197,6 +1170,7 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
     ap.set_yticks([0, 1])
     ap.set_yticklabels([0, 1], fontsize=styles.ticklabel_fontsize)
     ap.tick_params(labelsize=styles.ticklabel_fontsize)
+    ap.tick_params(pad=0)
 
     if not plot_3:
         axes = [ap]
@@ -1210,11 +1184,11 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
                       fontsize=styles.label_fontsize)
 
 
-def recovercy_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
-                         vs_OC, ax, priors, n_prior, OCs=None, keep_OCs=None, OC_k=None,
-                         ks=None, k_OC=None, legend=False, keep_max=False,
-                         add_ylabel=False, add_xlabel=False,
-                         axlabel=None):
+def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
+                        vs_OC, ax, priors, n_prior, OCs=None, keep_OCs=None, OC_k=None,
+                        ks=None, k_OC=None, legend=False, keep_max=False,
+                        add_ylabel=False, add_xlabel=False,
+                        axlabel=None):
     labelpad = 0
     p = priors[n_prior]
     ii = n_prior
@@ -1278,7 +1252,7 @@ def recovercy_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_xlim(.9, 3.6)
     else:
         ax.set_xlim(1.5, 16.5)
-        ax.set_xticks(np.linspace(2, 16, 4))
+        ax.set_xticks([2, 9, 16])
 
     ax.set_ylim(0, 1)
     ax.set_yticks([0, 1])
@@ -1301,3 +1275,4 @@ def recovercy_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
     ax.yaxis.set_ticks_position('left')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.tick_params(pad=0)

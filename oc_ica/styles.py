@@ -35,3 +35,5 @@ label_fontsize = 8
 ticklabel_fontsize = 8
 letter_fontsize=12
 lw = 1
+angle_bins = np.linspace(0, 90, 181)
+ds = 'steps-pre'

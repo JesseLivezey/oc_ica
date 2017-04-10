@@ -33,8 +33,6 @@ class ICA(BaseEstimator, TransformerMixin):
         'soft' (soft L1) or 'hard' (L1)
     rng : numpy.RandomState
         Randomstate for initialization.
-    a : int
-        Inverse power for Coulomb cost.
     optimizer : str
         Type of optimizer. 'L_BFGS-B' or 'sgd'.
     learning_rule : str
@@ -51,9 +49,7 @@ class ICA(BaseEstimator, TransformerMixin):
             assert optimizer == 'sgd'
 
         if rng is None:
-            seed = np.random.randint(100000)
-            print('Random seed: {}'.format(seed))
-            rng = np.random.RandomState(seed)
+            rng = np.random.RandomState(20170407)
 
         if n_sources==None:
             n_sources = n_mixtures
