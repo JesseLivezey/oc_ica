@@ -417,20 +417,34 @@ def plot_figure2de(panel, eps=1e-2,
 
 
 def plot_figure2(save_path=None, n_iter=10):
-    f = plt.figure(figsize=(5, 4.5))
-    left_gap = .0825
-    right_gap = .025
-    bottom_gap = .04
+    f = plt.figure(figsize=(5, 5))
+    left_gap = .115
+    right_gap = .02
     top_gap = .019
-    gap = .0125
-    width = (.5 - left_gap - right_gap - gap) / 2
-    height = .5 - bottom_gap - top_gap
-    ax1 = f.add_axes([left_gap, .5+bottom_gap, width, height])
-    ax2 = f.add_axes([left_gap+width+gap, .5+bottom_gap, width, height])
-    ax3 = plt.subplot2grid((4, 4), (0, 2), rowspan=2, colspan=2)
-    ax4 = plt.subplot2grid((4, 4), (2, 0), rowspan=2, colspan=2)
-    ax5 = plt.subplot2grid((4, 4), (2, 2), rowspan=1, colspan=2)
-    ax6 = plt.subplot2grid((4, 4), (3, 2), rowspan=1, colspan=2)
+    mid_gap = .08
+    bot_gap = .04
+    slice_gap = .012
+    width = .38
+
+    mid_gap = 1. - 2 * width - left_gap - right_gap
+    width_half = (width - slice_gap) / 2.
+
+    height = .5 - mid_gap / 2 - top_gap
+    print(width, height, width_half, mid_gap)
+    y = .5 + mid_gap / 2
+    ax1 = f.add_axes([left_gap, y, width_half, height])
+    ax2 = f.add_axes([left_gap + width_half + slice_gap, y,
+                      width_half, height])
+    ax3 = f.add_axes([1 - right_gap - width, y,
+                      width, height])
+    v_gap = .025
+    height_half = (height - v_gap) / 2
+    ax4 = f.add_axes([left_gap, bot_gap,
+                      width, height])
+    ax5 = f.add_axes([1 - right_gap - width, bot_gap,
+                      width, height_half])
+    ax6 = f.add_axes([1 - right_gap - width, bot_gap + height_half + v_gap,
+                      width, height_half])
     ax1.set_zorder(ax2.get_zorder()+1)
     plot_figure2a(n_iter=n_iter, faxes=(f, (ax1, ax2)))
     plot_figure2b(n_iter=n_iter, ax=ax3, add_ylabel=False)
@@ -440,17 +454,18 @@ def plot_figure2(save_path=None, n_iter=10):
     for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
         ax.tick_params(labelsize=styles.ticklabel_fontsize)
         ax.tick_params(pad=-2)
-    x1 = .0
-    x2 = .5
-    y1 = .945
-    y2 = .46
-    y3 = .24
+    x1 = .05
+    x2 = .52
+    y1 = .93
+    y2 = .42
+    y3 = .23
     f.text(x1, y1, 'a)', fontsize=styles.letter_fontsize)
     f.text(x2, y1, 'b)', fontsize=styles.letter_fontsize)
     f.text(x1, y2, 'c)', fontsize=styles.letter_fontsize)
     f.text(x2, y2, 'd)', fontsize=styles.letter_fontsize)
     f.text(x2, y3, 'e)', fontsize=styles.letter_fontsize)
-    f.tight_layout(pad=0, w_pad=0, h_pad=0)
+    f.text(left_gap + width_half, .5, r'$\theta$',
+            fontsize=styles.label_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
     else:
@@ -533,9 +548,9 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     if legend:
         ax.legend(loc='upper left',frameon=False,ncol=1,
                 fontsize=styles.legend_fontsize)
-    ax.set_xlabel(r'$\theta$',labelpad=-10, fontsize=styles.label_fontsize)
+    ax.set_xlabel(r'$\theta$',labelpad=0, fontsize=styles.label_fontsize)
     if add_ylabel:
-        ax.set_ylabel('Probability',labelpad=-2, fontsize=styles.label_fontsize)
+        ax.set_ylabel('Probability\nDensity',labelpad=0, fontsize=styles.label_fontsize)
     ax.set_xlim(45, 90)
     ax.set_xticks([45, 90])
 
@@ -630,7 +645,7 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
         ax1.legend(loc='upper left', frameon=False,ncol=1,
                 fontsize=styles.legend_fontsize)
 
-    ax1.set_ylabel('Probability',labelpad=-2, fontsize=styles.label_fontsize)
+    ax1.set_ylabel('Probability\nDensity',labelpad=0, fontsize=styles.label_fontsize)
 
     ax1.set_xlim(0,11)
     ax1.set_xticks([0,10])
@@ -736,7 +751,7 @@ def plot_figure3ab(angles, models, xticks=None,
                 path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
     ax.set_yscale('log')
     if add_ylabel:
-        ax.set_ylabel('Probability',labelpad=-10, fontsize=styles.label_fontsize)
+        ax.set_ylabel('Probability\nDensity',labelpad=-10, fontsize=styles.label_fontsize)
     ax.set_yticks([1e-5,1e0])
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.legend(loc='upper left', frameon=False,ncol=1,
@@ -1164,7 +1179,7 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
             am.set_ylabel(r'median($p_{\mathrm{min}}$)', labelpad=labelpad,
                           fontsize=styles.label_fontsize)
     if add_ylabel:
-        ap.set_ylabel('Normalized Mean', labelpad=labelpad,
+        ap.set_ylabel('Normalized\nMean', labelpad=labelpad,
                       fontsize=styles.label_fontsize)
     ap.set_ylim([0, 1.1])
     ap.set_yticks([0, 1])
@@ -1262,10 +1277,10 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_xlabel(xlabel, labelpad=labelpad,
                       fontsize=styles.label_fontsize)
     if add_ylabel:
-        ax.set_ylabel('Normalized Mean', labelpad=labelpad, fontsize=styles.label_fontsize)
+        ax.set_ylabel('Normalized\nMean', labelpad=labelpad, fontsize=styles.label_fontsize)
 
     if legend:
-        ax.legend(loc='upper left', bbox_to_anchor=(-1.7, 1.3), frameon=False,
+        ax.legend(loc='upper left', bbox_to_anchor=(-1.5, 1.1), frameon=False,
                    fontsize=styles.legend_fontsize)
 
     ax.minorticks_off()
