@@ -2,6 +2,7 @@ from __future__ import division
 import h5py
 import numpy as np
 import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import matplotlib.patches as mpatches
@@ -195,9 +196,9 @@ def plot_figure1(save_path=None):
 
     plot_figure1c(fax=(f, ax3))
 
-    f.text(.00, .93, 'a)', fontsize=styles.letter_fontsize)
-    f.text(.5, .93, 'b)', fontsize=styles.letter_fontsize)
-    f.text(.00, .5, 'c)', fontsize=styles.letter_fontsize)
+    f.text(.00, .93, 'A', fontsize=styles.letter_fontsize)
+    f.text(.5, .93, 'B', fontsize=styles.letter_fontsize)
+    f.text(.00, .5, 'C', fontsize=styles.letter_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
     else:
@@ -245,7 +246,7 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None):
 
 
 def plot_figure2b(save_path=None, n_iter=10, ax=None,
-                  add_ylabel=False):
+                  add_ylabel=True):
     """Reproduces figure 2a of the NIPS16 paper
     Parameters:
     ----------
@@ -340,59 +341,60 @@ def plot_figure2de(panel, eps=1e-2,
         ax = plt.axes([.16,.15,.8,.81])
     costs = ['2', 'COULOMB', 'RANDOM', '4']
     col = np.linspace(0,1,len(costs))
-    if panel=='d':
+    if panel=='e':
         xx = np.linspace(.6, 1., 100)
-        fun = [lambda x: x,
-               lambda x: x/(1.+eps-x**2)**(3/2),
-               lambda x: (2*x)/(1.+eps-x**2),
-               lambda x: x**3] 
         ax.set_yscale('log')
-    elif panel=='e':
+    elif panel=='d':
         xx = np.linspace(-.2, .2, 100)
-        fun = [lambda x: x,
-               lambda x: x/(1.+eps-x**2)**(3/2),
-               lambda x: (2*x)/(1.+eps-x**2),
-               lambda x: x**3] 
     else:
-        raise ValueError('Choose c or d')
+        raise ValueError('Choose d or e')
 
+    fun = [lambda x: x,
+           lambda x: x/(1.+eps-x**2)**(3/2),
+           lambda x: (2*x)/(1.+eps-x**2),
+           lambda x: x**3] 
     for ii, cost in enumerate(costs):
         ax.plot(xx, fun[ii](xx), styles.line_styles[cost],
                 c=styles.colors[cost], lw=styles.lw,
                 label=styles.labels[cost],
                 path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
-    if panel == 'd':
+    if panel == 'e':
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
-    elif panel=='e':
-        ax.spines['left'].set_position('zero')
-        ax.spines['right'].set_visible(False)
+        ax.get_yaxis().set_tick_params(direction='out')
+        ax.spines['left'].set_smart_bounds(True)
+        ax.yaxis.set_ticks_position('left')
+    elif panel=='d':
+        ax.spines['right'].set_position('zero')
+        ax.spines['left'].set_visible(False)
         ax.spines['bottom'].set_position('zero')
         ax.spines['top'].set_visible(False)
+        ax.get_yaxis().set_tick_params(direction='out')
+        ax.spines['right'].set_smart_bounds(True)
+        ax.yaxis.set_ticks_position('right')
+        ax.yaxis.set_label_position("right")
 
-    ax.spines['left'].set_smart_bounds(True)
     ax.spines['bottom'].set_smart_bounds(True)
     ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-    ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
     ax.set_xlim(np.min(xx),np.max(xx))
     ax.minorticks_off()
     for spine in ax.spines.values():
         spine.set_zorder(-10)
 
-    if panel=='d':
+    if panel=='e':
         ax.set_ylim([1e-1, 5e1])
         ax.set_xticks(np.arange(0.6, 1.1, .2))
         ax.xaxis.set_major_formatter(formatter)
         if add_xlabel:
-            ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize)
+            ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize,
+                    labelpad=0)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
                 fontsize=styles.label_fontsize,
                 labelpad=0)
         ax.tick_params(pad=0)
-    elif panel=='e':
+    elif panel=='d':
         ax.set_ylim(-.1,.1)
         ax.set_xticks(np.arange(-.2,.21,.2))
         ax.xaxis.set_major_formatter(formatter)
@@ -402,10 +404,11 @@ def plot_figure2de(panel, eps=1e-2,
         ax.yaxis.set_major_formatter(formatter)
         if add_xlabel:
             ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize,
-                          labelpad=25)
+                          labelpad=30)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
                 fontsize=styles.label_fontsize,
-                labelpad=60)
+                labelpad=-120,
+                rotation=90)
     else:
         raise ValueError
     if legend:
@@ -417,12 +420,12 @@ def plot_figure2de(panel, eps=1e-2,
 
 
 def plot_figure2(save_path=None, n_iter=10):
-    f = plt.figure(figsize=(5, 5))
-    left_gap = .115
+    f = plt.figure(figsize=(6, 6))
+    left_gap = .1
     right_gap = .02
-    top_gap = .019
-    mid_gap = .08
-    bot_gap = .04
+    top_gap = .04
+    mid_gap = .1
+    bot_gap = .05
     slice_gap = .012
     width = .38
 
@@ -447,23 +450,23 @@ def plot_figure2(save_path=None, n_iter=10):
                       width, height_half])
     ax1.set_zorder(ax2.get_zorder()+1)
     plot_figure2a(n_iter=n_iter, faxes=(f, (ax1, ax2)))
-    plot_figure2b(n_iter=n_iter, ax=ax3, add_ylabel=False)
+    plot_figure2b(n_iter=n_iter, ax=ax3)
     plot_figure2c(n_iter=n_iter, ax=ax4)
-    plot_figure2de('d', ax=ax5)
-    plot_figure2de('e', add_xlabel=True, ax=ax6)
+    plot_figure2de('d', ax=ax6, add_xlabel=True)
+    plot_figure2de('e', add_xlabel=True, ax=ax5)
     for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
         ax.tick_params(labelsize=styles.ticklabel_fontsize)
         ax.tick_params(pad=-2)
-    x1 = .05
+    x1 = .02
     x2 = .52
-    y1 = .93
-    y2 = .42
-    y3 = .23
-    f.text(x1, y1, 'a)', fontsize=styles.letter_fontsize)
-    f.text(x2, y1, 'b)', fontsize=styles.letter_fontsize)
-    f.text(x1, y2, 'c)', fontsize=styles.letter_fontsize)
-    f.text(x2, y2, 'd)', fontsize=styles.letter_fontsize)
-    f.text(x2, y3, 'e)', fontsize=styles.letter_fontsize)
+    y1 = .975
+    y2 = .47
+    y3 = .24
+    f.text(x1, y1, 'A', fontsize=styles.letter_fontsize)
+    f.text(x2, y1, 'B', fontsize=styles.letter_fontsize)
+    f.text(x1, y2, 'C', fontsize=styles.letter_fontsize)
+    f.text(x2, y2, 'D', fontsize=styles.letter_fontsize)
+    f.text(x2, y3, 'E', fontsize=styles.letter_fontsize)
     f.text(left_gap + width_half, .5, r'$\theta$',
             fontsize=styles.label_fontsize)
     if save_path is not None:
@@ -710,7 +713,7 @@ def plot_bases(bases, fax=None, save_path=None, scale_rows=True):
     return f, ax
 
 
-def plot_figure3ab(angles, models, xticks=None,
+def plot_figure4ab(angles, models, xticks=None,
                    show_label=None,
                    save_path=None, ax=None,
                    add_ylabel=False):
@@ -763,8 +766,8 @@ def plot_figure3ab(angles, models, xticks=None,
     ax.tick_params(pad=0)
 
 
-def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
-    """Reproduces figure 3 of the NIPS16 paper
+def plot_figure4(bases1, models1, bases_idx, bases2, models2, save_path=None):
+    """Plot angle distribution and bases for natural images.
     Parameters:
     ----------
     bases: array
@@ -781,7 +784,7 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
     """
     #compute the angles
     #generate figure
-    f = plt.figure(figsize=(4, 4))
+    f = plt.figure(figsize=(5, 5))
     ax_angles1 = plt.subplot2grid((2, 2), (0, 0))
     ax_angles1.get_yaxis().set_tick_params(direction='out')
     ax_angles1.get_xaxis().set_tick_params(direction='out')
@@ -796,17 +799,17 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
 
     ax_bases = plt.subplot2grid((2, 2), (1, 0), colspan=2, rowspan=1)
 
-    #figure3a
+    #figure4a
     n_sources = bases1.shape[-2]
     n_iter = bases1.shape[1]
     angles = np.zeros((len(models1),n_iter *
                        int(np.around((n_sources**2-n_sources)/2.))))
     for ii, b in enumerate(bases1):
         angles[ii] = analysis.compute_angles(b)
-    plot_figure3ab(angles, models1, ax=ax_angles1,
+    plot_figure4ab(angles, models1, ax=ax_angles1,
                    add_ylabel=True)
 
-    #figure3b
+    #figure4b
     n_sources = bases2.shape[-2]
     n_iter = bases2.shape[1]
     angles = np.zeros((len(models1),n_iter *
@@ -816,19 +819,23 @@ def plot_figure3(bases1, models1, bases_idx, bases2, models2, save_path=None):
     show_label = [False] * len(models2)
     show_label[-1] = True
     show_label[-3] = True
-    plot_figure3ab(angles, models2, xticks=[45, 90], show_label=show_label,
-                   ax=ax_angles2)
+    plot_figure4ab(angles, models2, xticks=[45, 90], show_label=show_label,
+                   ax=ax_angles2, add_ylabel=True)
 
-    #figure3b
+    #figure4c
     #ax_bases = plt.axes([.55,.15,.4,.8])
     w = bases1[bases_idx]
     if w.ndim == 3:
         w = w[0]
     plot_bases(w, fax=(f, ax_bases)) #, scale_rows=False)
-    f.text(.01, .89, 'a)', fontsize=styles.letter_fontsize)
-    f.text(.49, .89, 'b)', fontsize=styles.letter_fontsize)
-    f.text(.01, .45, 'c)', fontsize=styles.letter_fontsize)
-    plt.tight_layout()
+    y1 = .97
+    x1 = .01
+    y2 = .45
+    x2 = .49
+    f.text(x1, y1, 'A', fontsize=styles.letter_fontsize)
+    f.text(x2, y1, 'B', fontsize=styles.letter_fontsize)
+    f.text(x1, y2, 'C', fontsize=styles.letter_fontsize)
+    f.tight_layout()
     if save_path is not None:
         plt.savefig(save_path,dpi=300)
     else:
@@ -1119,6 +1126,7 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
                        priors, n_prior, axes, 
                        add_ylabel=False):
     labelpad = 0
+    ylabelpad = -10
     if isinstance(axes, list):
         plot_3 = True
         assert len(axes) == 3
@@ -1174,12 +1182,12 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
         am.set_ylim([0, 65])
         ap.set_title(p)
         if add_ylabel:
-            ae.set_ylabel(r'$\Delta P$', labelpad=labelpad,
+            ae.set_ylabel(r'$\Delta P$', labelpad=ylabelpad,
                           fontsize=styles.label_fontsize)
-            am.set_ylabel(r'median($p_{\mathrm{min}}$)', labelpad=labelpad,
+            am.set_ylabel(r'median($p_{\mathrm{min}}$)', labelpad=ylabelpad,
                           fontsize=styles.label_fontsize)
     if add_ylabel:
-        ap.set_ylabel('Normalized\nMean', labelpad=labelpad,
+        ap.set_ylabel('Normalized\nMean', labelpad=ylabelpad,
                       fontsize=styles.label_fontsize)
     ap.set_ylim([0, 1.1])
     ap.set_yticks([0, 1])
@@ -1205,6 +1213,7 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
                         add_ylabel=False, add_xlabel=False,
                         axlabel=None):
     labelpad = 0
+    ylabelpad = -10
     p = priors[n_prior]
     ii = n_prior
     if vs_OC:
@@ -1277,10 +1286,10 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_xlabel(xlabel, labelpad=labelpad,
                       fontsize=styles.label_fontsize)
     if add_ylabel:
-        ax.set_ylabel('Normalized\nMean', labelpad=labelpad, fontsize=styles.label_fontsize)
+        ax.set_ylabel('Normalized\nMean', labelpad=ylabelpad, fontsize=styles.label_fontsize)
 
     if legend:
-        ax.legend(loc='upper left', bbox_to_anchor=(-1.5, 1.1), frameon=False,
+        ax.legend(loc='upper left', bbox_to_anchor=(-1.3, 1.), frameon=False,
                    fontsize=styles.legend_fontsize)
 
     ax.minorticks_off()
