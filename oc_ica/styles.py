@@ -28,7 +28,7 @@ model_labels = ['Quasi-ortho', r'$L_2$', r'$L_4$', 'Soft Coher.', 'Coulomb',
                 'Flat Coulomb', 'Rand. Prior', 'Flat Rand. Prior',
                 'Score Matching', 'Sparse Coding']
 labels = {m: l for m, l in zip(models, model_labels)}
-labels['INIT'] = 'Gaussian'
+labels['INIT'] = 'Init.'
 
 legend_fontsize = 8
 label_fontsize = 8

@@ -2,7 +2,6 @@ from __future__ import division
 import h5py
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import matplotlib.patches as mpatches
@@ -205,7 +204,7 @@ def plot_figure1(save_path=None):
         plt.show()
 
 
-def plot_figure2a(save_path=None, n_iter=10, faxes=None):
+def plot_figure2a(save_path=None, n_iter=10, faxes=None, subset=True):
     """Reproduces figure 2b of the NIPS16 paper.
     Parameters:
     ----------
@@ -224,8 +223,12 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None):
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['pathological']
-    degeneracy_controls = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT', 'COULOMB',
-                           'RANDOM']
+    if subset:
+        degeneracy_controls = ['2', '4','COULOMB',
+                               'RANDOM']
+    else:
+        degeneracy_controls = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT', 'COULOMB',
+                               'RANDOM']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -246,7 +249,8 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None):
 
 
 def plot_figure2b(save_path=None, n_iter=10, ax=None,
-                  add_ylabel=True):
+                  add_ylabel=True, subset=True,
+                  add_xlabel=True):
     """Reproduces figure 2a of the NIPS16 paper
     Parameters:
     ----------
@@ -259,8 +263,12 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None,
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
-    degeneracy_controls = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT',
-                           'RANDOM', 'COULOMB']
+    if subset:
+        degeneracy_controls = ['2', '4','COULOMB',
+                               'RANDOM']
+    else:
+        degeneracy_controls = ['QUASI-ORTHO', '2', '4', 'COHERENCE_SOFT', 'COULOMB',
+                               'RANDOM']
     W = np.full((len(degeneracy_controls), n_iter, n_sources,
                  n_mixtures), np.nan)
     W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
@@ -271,7 +279,8 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None,
         W_0[ii] = W_0p
 
     ax = plot_angles_1column(W, W_0, degeneracy_controls,
-                             ax=ax, add_ylabel=add_ylabel)
+                             ax=ax, add_ylabel=add_ylabel,
+                             add_xlabel=add_xlabel)
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
     ax.xaxis.set_ticks_position('bottom')
@@ -419,12 +428,11 @@ def plot_figure2de(panel, eps=1e-2,
         plt.savefig(save_path)
 
 
-def plot_figure2(save_path=None, n_iter=10):
+def plot_figure2(save_path=None, n_iter=10, subset=True):
     f = plt.figure(figsize=(6, 6))
     left_gap = .1
     right_gap = .02
     top_gap = .04
-    mid_gap = .1
     bot_gap = .05
     slice_gap = .012
     width = .38
@@ -433,7 +441,6 @@ def plot_figure2(save_path=None, n_iter=10):
     width_half = (width - slice_gap) / 2.
 
     height = .5 - mid_gap / 2 - top_gap
-    print(width, height, width_half, mid_gap)
     y = .5 + mid_gap / 2
     ax1 = f.add_axes([left_gap, y, width_half, height])
     ax2 = f.add_axes([left_gap + width_half + slice_gap, y,
@@ -449,14 +456,14 @@ def plot_figure2(save_path=None, n_iter=10):
     ax6 = f.add_axes([1 - right_gap - width, bot_gap + height_half + v_gap,
                       width, height_half])
     ax1.set_zorder(ax2.get_zorder()+1)
-    plot_figure2a(n_iter=n_iter, faxes=(f, (ax1, ax2)))
-    plot_figure2b(n_iter=n_iter, ax=ax3)
+    plot_figure2a(n_iter=n_iter, faxes=(f, (ax1, ax2)), subset=subset)
+    plot_figure2b(n_iter=n_iter, ax=ax3, subset=subset, add_xlabel=False)
     plot_figure2c(n_iter=n_iter, ax=ax4)
     plot_figure2de('d', ax=ax6, add_xlabel=True)
     plot_figure2de('e', add_xlabel=True, ax=ax5)
     for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
         ax.tick_params(labelsize=styles.ticklabel_fontsize)
-        ax.tick_params(pad=-2)
+        ax.tick_params(pad=2)
     x1 = .02
     x2 = .52
     y1 = .975
@@ -467,7 +474,9 @@ def plot_figure2(save_path=None, n_iter=10):
     f.text(x1, y2, 'C', fontsize=styles.letter_fontsize)
     f.text(x2, y2, 'D', fontsize=styles.letter_fontsize)
     f.text(x2, y3, 'E', fontsize=styles.letter_fontsize)
-    f.text(left_gap + width_half, .5, r'$\theta$',
+    f.text(left_gap + width_half, .5 + mid_gap / 8., r'$\theta$',
+            fontsize=styles.label_fontsize)
+    f.text(left_gap + width + mid_gap + width_half, .5 + mid_gap / 8., r'$\theta$',
             fontsize=styles.label_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
@@ -478,7 +487,8 @@ def plot_figure2(save_path=None, n_iter=10):
 def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
                         plot_init=True,
                         pe_style=None, legend=False,
-                        ax=None, add_ylabel=True):
+                        ax=None, add_ylabel=True,
+                        add_xlabel=True):
     """
     Plots angle distributions of different costs and initial conditions.  
     Parameters:
@@ -545,17 +555,17 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
                 color=styles.colors['INIT'], lw=styles.lw)
 
     ax.set_yscale('log')
-    ax.set_xlim(0, 90) 
-      
     ax.set_ylim(1e-4, 1e0)
+
     if legend:
         ax.legend(loc='upper left',frameon=False,ncol=1,
                 fontsize=styles.legend_fontsize)
-    ax.set_xlabel(r'$\theta$',labelpad=0, fontsize=styles.label_fontsize)
+    if add_xlabel:
+        ax.set_xlabel(r'$\theta$',labelpad=0, fontsize=styles.label_fontsize)
     if add_ylabel:
         ax.set_ylabel('Probability\nDensity',labelpad=0, fontsize=styles.label_fontsize)
-    ax.set_xlim(45, 90)
-    ax.set_xticks([45, 90])
+    ax.set_xlim(65, 90)
+    ax.set_xticks([65, 90])
 
     ax.set_yticks([1e-4, 1e-2, 1e0])
     
@@ -625,7 +635,8 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
     b0 = b0[1:]
     h0 = h0 / np.sum(h0)
     ax1.plot(b0, h0, styles.line_styles['INIT'], drawstyle=styles.ds,
-             color=styles.colors['INIT'], lw=styles.lw)
+             color=styles.colors['INIT'], lw=styles.lw,
+             label=styles.labels['INIT'])
     ax2.plot(b0,h0, styles.line_styles['INIT'], drawstyle=styles.ds,
              color=styles.colors['INIT'], lw=styles.lw)
 
@@ -1126,7 +1137,7 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
                        priors, n_prior, axes, 
                        add_ylabel=False):
     labelpad = 0
-    ylabelpad = -10
+    ylabelpad = -5
     if isinstance(axes, list):
         plot_3 = True
         assert len(axes) == 3
@@ -1213,7 +1224,7 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
                         add_ylabel=False, add_xlabel=False,
                         axlabel=None):
     labelpad = 0
-    ylabelpad = -10
+    ylabelpad = -5
     p = priors[n_prior]
     ii = n_prior
     if vs_OC:
