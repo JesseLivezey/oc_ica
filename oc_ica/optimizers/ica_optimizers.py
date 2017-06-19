@@ -170,7 +170,7 @@ class Optimizer(object):
         elif degeneracy is None:
             error = None
         else:
-            raise ValueError
+            raise ValueError(degeneracy)
 
         if ((degeneracy is not None) and
             (lambd == 0. or lambd > 0.) and

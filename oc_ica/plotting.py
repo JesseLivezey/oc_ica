@@ -314,7 +314,7 @@ def plot_figure2c(save_path=None, n_iter=10, ax=None):
 
     ax = plot_angles_1column(W, W_0, degeneracy_controls,
                         plot_init=False,
-                        pe_style=[True, True, False, False],
+                        pe_style=[True, True, True, True],
                         ax=ax)
     ax.set_xlim(81.5, 90)
     ax.set_xticks([82, 90])
@@ -429,13 +429,13 @@ def plot_figure2de(panel, eps=1e-2,
 
 
 def plot_figure2(save_path=None, n_iter=10, subset=True):
-    f = plt.figure(figsize=(6, 6))
-    left_gap = .1
-    right_gap = .02
+    f = plt.figure(figsize=(5, 5))
+    left_gap = .1155
+    right_gap = .01625
     top_gap = .04
-    bot_gap = .05
+    bot_gap = .0612
     slice_gap = .012
-    width = .38
+    width = .37
 
     mid_gap = 1. - 2 * width - left_gap - right_gap
     width_half = (width - slice_gap) / 2.
@@ -643,8 +643,6 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
     # hide the spines between ax and ax2
     ax1.spines['right'].set_visible(False)
     ax2.spines['left'].set_visible(False)
-    ax2.yaxis.tick_right()
-    ax2.tick_params(labelright='off')
     ax1.yaxis.tick_left()
     
     ax1.set_yscale('log')
@@ -671,7 +669,7 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
     ax2.set_xlim(79,90)
     ax2.set_xticks([80,90])
  
-    ax2.set_yticks([1e-4,1e-2,1e0])
+    ax2.set_yticks([], [])
 
     ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
