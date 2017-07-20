@@ -31,7 +31,7 @@ from oc_ica import styles
 reload(styles)
 
 
-def plot_figure1c(save_path=None, fax=None):
+def plot_figure1cd(save_path=None, fax=None, panel='c'):
     sin = np.sin
     cos = np.cos
     sqrt = np.sqrt
@@ -62,22 +62,24 @@ def plot_figure1c(save_path=None, fax=None):
                              figsize=(5, 2))
     else:
         f, ax = fax
-    for ii, e in enumerate(l2_vals):
-        if ii == 0:
-            label = styles.labels['2']
-        else:
-            label = None
-        ax.plot(thetas, e/9.,
-                c=styles.colors['2'],
-                lw=styles.lw, label=label,
-                path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-    for ii, e in enumerate(l4_vals):
-        if ii == 0:
-            label = styles.labels['4']
-        else:
-            label = None
-        ax.plot(thetas, e/29., c=styles.colors['4'], lw=styles.lw,
-                label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+    if panel == 'c':
+        for ii, e in enumerate(l2_vals):
+            if ii == 0:
+                label = styles.labels['2']
+            else:
+                label = None
+            ax.plot(thetas, e/9.,
+                    c=styles.colors['2'],
+                    lw=styles.lw, label=label,
+                    path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+    else:
+        for ii, e in enumerate(l4_vals):
+            if ii == 0:
+                label = styles.labels['4']
+            else:
+                label = None
+            ax.plot(thetas, e/29., c=styles.colors['4'], lw=styles.lw,
+                    label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
     ax.grid()
 
@@ -91,7 +93,7 @@ def plot_figure1c(save_path=None, fax=None):
     ax.get_xaxis().set_tick_params(direction='out')
     ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
                          np.pi*180.).astype(int))
-    ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize)
+    ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize, labelpad=0)
     ax.set_ylabel(r'$e_i$ (arb. units)', labelpad=-0, fontsize=styles.label_fontsize)
     ax.legend(loc='lower right', frameon=False, fontsize=styles.legend_fontsize)
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
@@ -119,7 +121,7 @@ def plot_figure1(save_path=None):
                                               lw=2*styles.lw))
     dtheta1 = .2
     dtheta2 = np.pi/4
-    figsize = (4, 2.5)
+    figsize = (4, 3.5)
     xlim = [-np.cos(dtheta2)-.05, 1.05]
     ylim = [-.05, 1.05]
     ratio = (np.diff(xlim)/np.diff(ylim))[0]
@@ -128,7 +130,7 @@ def plot_figure1(save_path=None):
     bot_l_edge = .1
     bot_r_edge = .025
     top_edge = top_lr_edge
-    bot_edge = .15
+    bot_edge = .1
     top_gap = .001
     mid_gap = .04
 
@@ -149,11 +151,17 @@ def plot_figure1(save_path=None):
     width_bot = width_bot / figsize[0]
 
     f = plt.figure(figsize=figsize)
-    ax1 = f.add_axes((top_lr_edge, 1-height_top+mid_gap/2, width_top, height_top))
-    ax2 = f.add_axes((.5+top_gap/2, 1-height_top+mid_gap/2, width_top, height_top))
-    ax3 = f.add_axes((bot_l_edge, bot_edge,
+    ax1 = f.add_axes((top_lr_edge, 1-top_edge-height_top+mid_gap/2, width_top, height_top))
+    ax2 = f.add_axes((.5+top_gap/2, 1-top_edge-height_top+mid_gap/2, width_top, height_top))
+
+    bot_mid_gap = .1
+    bot_ind_height = (1-bot_edge-mid_gap-top_edge-height_top-bot_mid_gap) / 2.
+    ax3 = f.add_axes((bot_l_edge, bot_edge+bot_ind_height+bot_mid_gap,
                       1.-bot_l_edge-bot_r_edge,
-                      1-bot_edge-mid_gap-top_edge-height_top))
+                      bot_ind_height))
+    ax4 = f.add_axes((bot_l_edge, bot_edge,
+                      1.-bot_l_edge-bot_r_edge,
+                      bot_ind_height))
 
     ax1.set_xlim(xlim)
     ax1.set_ylim(ylim)
@@ -193,11 +201,13 @@ def plot_figure1(save_path=None):
     ax2.text(.3, -.15, r'$\theta_2$', fontsize=styles.label_fontsize, color='r')
     ax2.add_patch(mpl.patches.Circle((0, 0), .01, color='b'))
 
-    plot_figure1c(fax=(f, ax3))
+    plot_figure1cd(fax=(f, ax3), panel='c')
+    plot_figure1cd(fax=(f, ax4), panel='d')
 
     f.text(.00, .93, 'A', fontsize=styles.letter_fontsize)
     f.text(.5, .93, 'B', fontsize=styles.letter_fontsize)
-    f.text(.00, .5, 'C', fontsize=styles.letter_fontsize)
+    f.text(.00, .625, 'C', fontsize=styles.letter_fontsize)
+    f.text(.00, .325, 'D', fontsize=styles.letter_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
     else:
@@ -775,7 +785,8 @@ def plot_figure4ab(angles, models, xticks=None,
     ax.tick_params(pad=0)
 
 
-def plot_figure4(bases1, models1, bases_idx, bases2, models2, save_path=None):
+def plot_figure4(bases1, models1, bases2, models2,
+                 bases3, models3, save_path=None):
     """Plot angle distribution and bases for natural images.
     Parameters:
     ----------
@@ -833,10 +844,37 @@ def plot_figure4(bases1, models1, bases_idx, bases2, models2, save_path=None):
 
     #figure4c
     #ax_bases = plt.axes([.55,.15,.4,.8])
-    w = bases1[bases_idx]
-    if w.ndim == 3:
-        w = w[0]
-    plot_bases(w, fax=(f, ax_bases)) #, scale_rows=False)
+    width = 3 * len(models3) - 1
+    height = 8
+    n_sources = bases3.shape[-2]
+    n_mixtures = bases3.shape[-1]
+    w_pairs = np.zeros((width * height, n_mixtures))
+    w_pairs = np.full((width * height, n_mixtures), np.nan)
+    print(models3)
+    for ii, b in enumerate(bases3):
+        w = b[0]
+        abs_gram = abs(w.dot(w.T))
+        abs_gram_od = abs_gram - np.diag(np.diag(abs_gram))
+        abs_gram_od *= np.tri(*abs_gram_od.shape)
+        for jj in range(height):
+            idx = np.unravel_index(abs_gram_od.argmax(), abs_gram_od.shape)
+            w_pairs[width * jj + 3 * ii] = w[idx[0]]
+            w_pairs[width * jj + 3 * ii + 1] = w[idx[1]] * np.sign(w[idx[0]].dot(w[idx[1]]))
+            abs_gram_od[idx] = 0.
+    n_pixels = int(np.around(np.sqrt(n_mixtures)))
+    im = tri(w_pairs,(n_pixels, n_pixels),(height, width),
+                (2,2), scale_rows_to_unit_interval=True,
+                output_pixel_vals=False)
+    ax_bases.imshow(im,aspect='auto', interpolation='nearest', cmap='gray')
+    ax_bases.set_axis_off()
+    f.text(.1375, .475, styles.short_labels[models3[0]], fontsize=styles.letter_fontsize)
+    f.text(.27, .475, styles.short_labels[models3[1]], fontsize=styles.letter_fontsize)
+    f.text(.39, .475, styles.short_labels[models3[2]], fontsize=styles.letter_fontsize)
+    f.text(.525, .475, styles.short_labels[models3[3]], fontsize=styles.letter_fontsize)
+    f.text(.65, .475, styles.short_labels[models3[4]], fontsize=styles.letter_fontsize)
+    f.text(.765, .475, styles.short_labels[models3[5]], fontsize=styles.letter_fontsize)
+    f.text(.885, .475, styles.short_labels[models3[6]], fontsize=styles.letter_fontsize)
+    
     y1 = .97
     x1 = .01
     y2 = .45

@@ -30,6 +30,12 @@ model_labels = ['Quasi-ortho', r'$L_2$', r'$L_4$', 'Soft Coher.', 'Coulomb',
 labels = {m: l for m, l in zip(models, model_labels)}
 labels['INIT'] = 'Init.'
 
+short_model_labels = ['QO', r'$L_2$', r'$L_4$', 'SftCoh', 'Cb',
+                'FCb', 'RP', 'FRP',
+                'SM', 'SC']
+short_labels = {m: l for m, l in zip(models, short_model_labels)}
+short_labels['INIT'] = 'Init.'
+
 legend_fontsize = 8
 label_fontsize = 8
 ticklabel_fontsize = 8
