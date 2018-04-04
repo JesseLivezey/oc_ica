@@ -31,12 +31,64 @@ from oc_ica import styles
 reload(styles)
 
 
-def plot_figure1cd(save_path=None, fax=None, panel='c'):
+def plot_figure1c(save_path=None, fax=None):
     sin = np.sin
     cos = np.cos
     sqrt = np.sqrt
     n_pts = 100
-    l2_evals = [lambda th: th*0., 
+    l2_cost = lambda th: 4. * np.ones_like(th)
+    l4_cost = lambda th: 3 + cos(4 * th)
+
+    thetas = np.linspace(-np.pi/4., np.pi/4., n_pts)
+
+    l2_vals = l2_cost(thetas)
+    l4_vals = l4_cost(thetas)
+
+    if fax is None:
+        f, ax = plt.subplots(1, figsize=(5, 2))
+    else:
+        f, ax = fax
+
+    label = styles.labels['2']
+    ax.plot(thetas, l2_vals/l2_vals.max(),
+            c=styles.colors['2'],
+            lw=styles.lw, label=label,
+            path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+
+    label = styles.labels['4']
+    ax.plot(thetas, l4_vals/l4_vals.max(), c=styles.colors['4'], lw=styles.lw,
+            label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+
+    ax.grid()
+
+    ax.set_xlim([thetas[0], thetas[-1]])
+    ax.set_ylim(0., 1.1)
+    ax.set_yticks([0, 1])
+    ax.set_xticks(np.linspace(thetas[0], thetas[-1], 3))
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.get_yaxis().set_tick_params(direction='out')
+    ax.get_xaxis().set_tick_params(direction='out')
+    ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
+                         np.pi*180.).astype(int))
+    ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize, labelpad=0)
+    ax.set_ylabel('Cost (scaled)', labelpad=-0, fontsize=styles.label_fontsize)
+    ax.legend(loc='upper left', bbox_to_anchor=(.55, .65), frameon=False, fontsize=styles.legend_fontsize)
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+
+    if fax is None:
+        f.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
+
+
+def plot_evals(save_path=None, fax=None, panel='c'):
+    sin = np.sin
+    cos = np.cos
+    sqrt = np.sqrt
+    n_pts = 100
+    l2_evals = [lambda th: th*0.,
                 lambda th: 8*sin(th)**2,
                 lambda th: 8*cos(th)**2 ]
     l4_evals = [lambda th: 4*(cos(2*th)-cos(4*th)),
@@ -121,7 +173,7 @@ def plot_figure1(save_path=None):
                                               lw=2*styles.lw))
     dtheta1 = .2
     dtheta2 = np.pi/4
-    figsize = (4, 3.5)
+    figsize = (4, 2.5)
     xlim = [-np.cos(dtheta2)-.05, 1.05]
     ylim = [-.05, 1.05]
     ratio = (np.diff(xlim)/np.diff(ylim))[0]
@@ -130,9 +182,9 @@ def plot_figure1(save_path=None):
     bot_l_edge = .1
     bot_r_edge = .025
     top_edge = top_lr_edge
-    bot_edge = .1
+    bot_edge = .13
     top_gap = .001
-    mid_gap = .04
+    mid_gap = .07
 
     top_lr_edge_x = top_lr_edge * figsize[0]
     bot_l_edge_x = bot_l_edge * figsize[0]
@@ -154,14 +206,10 @@ def plot_figure1(save_path=None):
     ax1 = f.add_axes((top_lr_edge, 1-top_edge-height_top+mid_gap/2, width_top, height_top))
     ax2 = f.add_axes((.5+top_gap/2, 1-top_edge-height_top+mid_gap/2, width_top, height_top))
 
-    bot_mid_gap = .1
-    bot_ind_height = (1-bot_edge-mid_gap-top_edge-height_top-bot_mid_gap) / 2.
-    ax3 = f.add_axes((bot_l_edge, bot_edge+bot_ind_height+bot_mid_gap,
+    bot_height = 1.-bot_edge-mid_gap-top_edge-height_top
+    ax3 = f.add_axes((bot_l_edge, bot_edge,
                       1.-bot_l_edge-bot_r_edge,
-                      bot_ind_height))
-    ax4 = f.add_axes((bot_l_edge, bot_edge,
-                      1.-bot_l_edge-bot_r_edge,
-                      bot_ind_height))
+                      bot_height))
 
     ax1.set_xlim(xlim)
     ax1.set_ylim(ylim)
@@ -201,13 +249,11 @@ def plot_figure1(save_path=None):
     ax2.text(.3, -.15, r'$\theta_2$', fontsize=styles.label_fontsize, color='r')
     ax2.add_patch(mpl.patches.Circle((0, 0), .01, color='b'))
 
-    plot_figure1cd(fax=(f, ax3), panel='c')
-    plot_figure1cd(fax=(f, ax4), panel='d')
+    plot_figure1c(fax=(f, ax3))
 
     f.text(.00, .93, 'A', fontsize=styles.letter_fontsize)
     f.text(.5, .93, 'B', fontsize=styles.letter_fontsize)
-    f.text(.00, .625, 'C', fontsize=styles.letter_fontsize)
-    f.text(.00, .325, 'D', fontsize=styles.letter_fontsize)
+    f.text(.00, .47, 'C', fontsize=styles.letter_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
     else:
@@ -222,11 +268,11 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None, subset=True):
            Set of basis obtained by optimizing different costs.
            Dimension: n_costs X n_vectors X n_dims
     W_0   : array, optional
-           Initial set of basis. 
+           Initial set of basis.
            Dimension: n_costs X n_vectors X n_dims
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     """
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
@@ -249,11 +295,13 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None, subset=True):
         W_0[ii] = W_0p
 
     faxes = plot_angles_broken_axis(W, W_0, degeneracy_controls, faxes=faxes)
+    """
     for ax in faxes[1]:
         ax.get_yaxis().set_tick_params(direction='out')
         ax.get_xaxis().set_tick_params(direction='out')
         ax.xaxis.set_ticks_position('bottom')
     faxes[1][0].yaxis.set_ticks_position('left')
+        """
     if save_path is not None:
         plt.savefig(save_path)
 
@@ -265,8 +313,8 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None,
     Parameters:
     ----------
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     """
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
@@ -304,8 +352,8 @@ def plot_figure2c(save_path=None, n_iter=10, ax=None):
     Parameters:
     ----------
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     """
     rng = np.random.RandomState(20161206)
     overcompleteness = 2
@@ -348,10 +396,10 @@ def plot_figure2de(panel, eps=1e-2,
     Parameters
     ----------
     panel: string, optional
-         Which panel, options: 'd', 'e' 
+         Which panel, options: 'd', 'e'
     save_path: string, optional
-         figure_path+figure_name+.format to store the figure. 
-         If figure is stored, it is not displayed.   
+         figure_path+figure_name+.format to store the figure.
+         If figure is stored, it is not displayed.
     """
     formatter = mpl.ticker.StrMethodFormatter('{x:.1g}')
     if ax is None:
@@ -371,7 +419,7 @@ def plot_figure2de(panel, eps=1e-2,
     fun = [lambda x: x,
            lambda x: x/(1.+eps-x**2)**(3/2),
            lambda x: (2*x)/(1.+eps-x**2),
-           lambda x: x**3] 
+           lambda x: x**3]
     for ii, cost in enumerate(costs):
         ax.plot(xx, fun[ii](xx), styles.line_styles[cost],
                 c=styles.colors[cost], lw=styles.lw,
@@ -439,6 +487,46 @@ def plot_figure2de(panel, eps=1e-2,
 
 
 def plot_figure2(save_path=None, n_iter=10, subset=True):
+    f = plt.figure(figsize=(5, 2.5))
+    left_gap = .12
+    right_gap = .01625
+    top_gap = .04
+    bot_gap = .13
+    slice_gap = .012
+    mid_gap = .15
+
+    width = (1. - left_gap - right_gap - mid_gap) / 2.
+    width_half = (width - slice_gap) / 2.
+
+    height = 1. - top_gap - bot_gap
+    y = bot_gap
+    ax1 = f.add_axes([left_gap, y, width_half, height])
+    ax2 = f.add_axes([left_gap + width_half + slice_gap, y,
+                      width_half, height])
+    ax3 = f.add_axes([1 - right_gap - width, y,
+                      width, height])
+    ax1.set_zorder(ax2.get_zorder()+1)
+    plot_figure2a(n_iter=n_iter, faxes=(f, (ax1, ax2)), subset=subset)
+    plot_figure2b(n_iter=n_iter, ax=ax3, subset=subset, add_xlabel=False)
+    for ax in [ax1, ax2, ax3]:
+        ax.tick_params(labelsize=styles.ticklabel_fontsize)
+        ax.tick_params(pad=2)
+    x1 = .02
+    x2 = .52
+    y1 = .9
+    f.text(x1, y1, 'A', fontsize=styles.letter_fontsize)
+    f.text(x2, y1, 'B', fontsize=styles.letter_fontsize)
+    f.text(left_gap + width_half, bot_gap/10., r'$\theta$',
+            fontsize=styles.label_fontsize)
+    f.text(left_gap + width + mid_gap + width_half, bot_gap/10., r'$\theta$',
+            fontsize=styles.label_fontsize)
+    if save_path is not None:
+        plt.savefig(save_path)
+    else:
+        plt.show()
+
+
+def plot_figure2_old(save_path=None, n_iter=10, subset=True):
     f = plt.figure(figsize=(5, 5))
     left_gap = .1155
     right_gap = .01625
@@ -500,7 +588,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
                         ax=None, add_ylabel=True,
                         add_xlabel=True):
     """
-    Plots angle distributions of different costs and initial conditions.  
+    Plots angle distributions of different costs and initial conditions.
     Parameters:
     ----------
     W     : array
@@ -517,8 +605,8 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
            Names of the costs that were evaluated
     cmap  : colormap object, optional
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     """
     n_costs = W.shape[0]
     col = np.linspace(0, 1, n_costs-1)
@@ -537,7 +625,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         angles = np.array([])
         for wi in ws:
             angles = np.concatenate((analysis.compute_angles(wi), angles))
-        h, b = np.histogram(angles, styles.angle_bins) 
+        h, b = np.histogram(angles, styles.angle_bins)
         b = b[1:]
         h = h*1./np.sum(h)
         st = styles.line_styles[cost]
@@ -578,7 +666,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
     ax.set_xticks([65, 90])
 
     ax.set_yticks([1e-4, 1e-2, 1e0])
-    
+
     ax.yaxis.set_minor_locator(mpl.ticker.NullLocator())
     """
     if W.shape[0] > 1:
@@ -594,7 +682,7 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
 def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
                             save_path=None, legend=True,
                             faxes=None):
-    """Plots angle distributions of different costs and initial conditions  
+    """Plots angle distributions of different costs and initial conditions
     Parameters:
     ----------
     W     : array
@@ -607,10 +695,10 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
            Names of the costs that are evaluated
     cmap  : colormap (plt.cm) object, optional
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     legend: boolean, optional
-           Add a legend to the plot 
+           Add a legend to the plot
     """
 
     if faxes is None:
@@ -625,7 +713,7 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
         angles = np.array([])
         for wi in ws:
             angles = np.concatenate((analysis.compute_angles(wi), angles))
-        h, b = np.histogram(angles, styles.angle_bins) 
+        h, b = np.histogram(angles, styles.angle_bins)
         b = b[1:]
         h = h*1./np.sum(h)
         c = styles.colors[cost]
@@ -654,13 +742,13 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
     ax1.spines['right'].set_visible(False)
     ax2.spines['left'].set_visible(False)
     ax1.yaxis.tick_left()
-    
+
     ax1.set_yscale('log')
-    ax1.set_xlim(0,90) 
+    ax1.set_xlim(0,90)
 
     ax2.set_yscale('log')
-    ax2.set_xlim(0,90) 
-    
+    ax2.set_xlim(0,90)
+
     ax1.set_ylim(1e-4,1e0)
 
     if legend:
@@ -672,16 +760,26 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
     ax1.set_xlim(0,11)
     ax1.set_xticks([0,10])
 
-    ax1.set_yticks([1e-4,1e-2,1e0])
 
     ax1.yaxis.set_minor_locator(mpl.ticker.NullLocator())
 
     ax2.set_xlim(79,90)
     ax2.set_xticks([80,90])
- 
-    ax2.set_yticks([], [])
 
-    ax2.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+
+    for ax in [ax1, ax2]:
+        ax.set_yscale('log')
+        ax.minorticks_off()
+    ax1.set_yticks([1e-4,1e-2,1e0])
+    for tic in ax2.yaxis.get_major_ticks():
+        tic.tick10n = tic.tick20n = False
+        tic.label10n = tic.label20n = False
+    ax2.spines['left'].set_visible(False)
+    ax2.tick_params(left=False)
+    ax1.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+    ax2.yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
+    ax2.yaxis.set_major_formatter(mpl.ticker.NullFormatter())
+
 
     d = .015  # how big to make the diagonal lines in axes coordinates
     # arguments to pass plot, just so we don't keep repeating them
@@ -711,8 +809,8 @@ def plot_bases(bases, fax=None, save_path=None, scale_rows=True):
     ax    : Axes object, optional
            If None, the funtion generates a new Axes object.
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     figname: string, optional
            Name of the figure
     """
@@ -745,8 +843,8 @@ def plot_figure4ab(angles, models, xticks=None,
     ax    : Axes object, optional
            If None, the funtion generates a new Axes object.
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     figname: string, optional
            Name of the figure
     """
@@ -793,12 +891,12 @@ def plot_figure4(bases1, models1, bases2, models2,
     bases: array
            Set of ICA bases. Dimension: n_costs X n_sources X n_mixtures
     oc    : int, optional
-           Overcompleteness 
+           Overcompleteness
     lambd : float, optional
            Sparsity
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
     figname: string, optional
            Name of the figure
     """
@@ -874,7 +972,7 @@ def plot_figure4(bases1, models1, bases2, models2,
     f.text(.65, .475, styles.short_labels[models3[4]], fontsize=styles.letter_fontsize)
     f.text(.765, .475, styles.short_labels[models3[5]], fontsize=styles.letter_fontsize)
     f.text(.885, .475, styles.short_labels[models3[6]], fontsize=styles.letter_fontsize)
-    
+
     y1 = .97
     x1 = .01
     y2 = .45
@@ -941,7 +1039,7 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .75),
     # create a parasite axes whose transData is theta, r:
     auxa = a.get_aux_axes(tr)
     # make aux_ax to have a clip path as in a?:
-    auxa.patch = a.patch 
+    auxa.patch = a.patch
     # this has a side effect that the patch is drawn twice, and possibly over some other
     # artists. So, we decrease the zorder a bit to prevent this:
     a.patch.zorder = -2
@@ -990,27 +1088,27 @@ def plot_GaborFit_xy(params, n_pixels, model,
                      f=None, pos=None,
                      labelx=True, labely=True):
     """
-    Plot Gabor parameters using a "confetti plot": 
+    Plot Gabor parameters using a "confetti plot":
        - position of rectangle:  position of Gabor
-       - width,height of rectangle:  variance of envelope 
+       - width,height of rectangle:  variance of envelope
        - angle of the rectangle: orientation of the Gabor
     Parameters:
     ----------
-    params : list of arrays 
-           Gabor parameters :x, y, orientation, phase, 
-                frequency, varx, vary 
+    params : list of arrays
+           Gabor parameters :x, y, orientation, phase,
+                frequency, varx, vary
            Dimension of arrays : n_sources
     color : float, optional
            Color value for viridis colormap
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
-    """ 
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
+    """
     color = styles.colors[model]
     if figsize is None:
         figsize = (2,2)
     if ax is None and f is None:
-        fig = plt.figure('xy', figsize=figsize)   
+        fig = plt.figure('xy', figsize=figsize)
         fig.clf()
         ax = plt.axes([.15,.15,.8,.8])
     elif ax is None:
@@ -1063,24 +1161,24 @@ def plot_GaborFit_xy(params, n_pixels, model,
         plt.savefig(save_path)
 
 
-def plot_GaborFit_polar(params, model, save_path=None, 
+def plot_GaborFit_polar(params, model, save_path=None,
                         figsize=None, f=None, pos=None,
                         labelx=True, labely=True):
-    """Plot Gabor parameters using a polar plot: 
-       - radius: frequency 
+    """Plot Gabor parameters using a polar plot:
+       - radius: frequency
        - angle : orientation of the Gabor
     Parameters:
     ----------
-    params : list of arrays 
-           Gabor parameters :x, y, orientation, phase, 
-                frequency, varx, vary 
+    params : list of arrays
+           Gabor parameters :x, y, orientation, phase,
+                frequency, varx, vary
            Dimension of arrays : n_sources
     color : float, optional
            Color value for viridis colormap
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
-    """ 
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
+    """
     color = styles.colors[model]
     if f is None:
         if figsize is None:
@@ -1111,21 +1209,21 @@ def plot_GaborFit_polar(params, model, save_path=None,
 def plot_GaborFit_envelope(params, model, save_path=None,
                            ax=None, f=None, figsize=None,
                            pos=None, labelx=True, labely=True):
-    """Plot Gabor parameters using a scatter plot: 
-       - position of circles: size of the evelope (varx,vary) 
+    """Plot Gabor parameters using a scatter plot:
+       - position of circles: size of the evelope (varx,vary)
        - size of the circle : frequency of the cosine function
     Parameters:
     ----------
-    params : list of arrays 
-           Gabor parameters :x, y, orientation, phase, 
-                frequency, varx, vary 
+    params : list of arrays
+           Gabor parameters :x, y, orientation, phase,
+                frequency, varx, vary
            Dimension of arrays : n_sources
     color : float, optional
            Color value for viridis colormap
     save_path: string, optional
-           Figure_path+figure_name+.format to store the figure. 
-           If figure is stored, it is not displayed.   
-    """ 
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
+    """
     color = styles.colors[model]
     if figsize is None:
         figsize = (2,2)
@@ -1170,7 +1268,7 @@ def plot_GaborFit_envelope(params, model, save_path=None,
 
 
 def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
-                       priors, n_prior, axes, 
+                       priors, n_prior, axes,
                        add_ylabel=False):
     labelpad = 0
     ylabelpad = -5
@@ -1206,11 +1304,11 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
                 ae.semilogx(lambdas, delta, fmt, label=label, c=color,
                         lw=styles.lw,
                             path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-                
+
                 am.semilogx(lambdas, mma, fmt, label=label, c=color,
                         lw=styles.lw,
                             path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-            
+
             ap.semilogx(lambdas, .5*(delta/null_delta + mma/null_mma), fmt,
                     label=label, c=color, lw=styles.lw,
                         path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])

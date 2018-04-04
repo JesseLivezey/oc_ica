@@ -37,7 +37,7 @@ def find_max_allowed_k(As):
         k_temp = int(np.floor(.5*(1. + 1./mu)))
         if k_temp < k:
             k = k_temp
-    
+
     return k
 
 def hellinger(p, q):
@@ -45,17 +45,17 @@ def hellinger(p, q):
 
 def perm_delta(A, W, full=False):
     P = abs(W.dot(A))
-    
+
     P_max = np.zeros_like(P, dtype=bool)
     P_max[np.arange(P.shape[0]), np.argmax(P, axis=1)] = 1
-    
+
     max_vals = P[P_max]
     max_angles = cos2deg(max_vals)
 
     if full:
         other_vals = P[np.logical_not(P_max)]
         other_angles = cos2deg(other_vals)
-        
+
         return (abs(P_max.sum(axis=0)-1).sum(),
                 max_angles,
                 other_angles)
@@ -99,7 +99,7 @@ def get_Winit(n_sources, n_mixtures, init='random', rng=None):
             rng.randn(n_sources, n_mixtures)/2
     elif init=='pathological':
         w = np.tile(np.eye(n_mixtures), (n_sources//n_mixtures, 1))+\
-            rng.randn(n_sources, n_mixtures)/100
+            rng.randn(n_sources, n_mixtures)/100.
     w = w/np.linalg.norm(w, axis=-1, keepdims=True)
     return w
 
@@ -116,7 +116,7 @@ def get_W(w_init, degeneracy, rng=None, **kwargs):
         rng = np.random.RandomState(20160915)
     n_sources, n_mixtures = w_init.shape
     X = np.ones((n_mixtures, 2), dtype='float32')
-    model = ica.ICA(n_mixtures=n_mixtures, n_sources=n_sources, 
+    model = ica.ICA(n_mixtures=n_mixtures, n_sources=n_sources,
                     degeneracy=degeneracy, lambd=0., w_init=w_init.copy(),
                     rng=rng, **kwargs)
     return model.fit(X).components_
