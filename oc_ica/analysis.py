@@ -81,6 +81,22 @@ def recovery_statistics_AW(A, W, full=False):
     delta_P, ma = results
     return delta_P, np.nanmedian(ma)
 
+def recovery_statistics2_AW(A, W):
+    """
+    Compute recovery statistics for mixing matrix and
+    recovered matrix.
+    """
+    A = normalize_A(A)
+    W = normalize_W(W)
+    P = abs(W.dot(A))
+    angles = np.full(P.shape[0], np.nan)
+    for ii in range(P.shape[0]):
+        x, y = np.unravel_index(P.argmax(), P.shape)
+        angles[ii] = P[x, y]
+        P[x] = -np.inf
+        P[:, y] = -np.inf
+    return np.median(angles)
+
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
 #    return X.dot(X.T.dot(X)**(-1/2))
@@ -191,12 +207,10 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
     W_fits = np.full((len(A_priors), len(models), lambdas.size, n_iter,
         n_sources, n_mixtures),
                          np.nan, dtype='float32')
-    results = np.full((len(A_priors), len(models), lambdas.size, n_iter,
-        2),
+    results = np.full((len(A_priors), len(models), lambdas.size, n_iter),
                           np.nan, dtype='float32')
     null_results = np.full((len(A_priors), len(models), lambdas.size,
-        (n_iter**2-n_iter)//2, 2),
-                          np.nan, dtype='float32')
+        (n_iter**2-n_iter)//2), np.nan, dtype='float32')
 
     for ii, f_name in enumerate(fit_files):
         with h5py.File(os.path.join(base_folder, fit_folder, f_name),
@@ -224,14 +238,14 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                             A = A_array[ii, ll]
                             W = W_fits[ii, jj, kk, ll]
                             assert (not np.isnan(A.sum())) and (not np.isnan(W.sum()))
-                            results[ii, jj, kk, ll] = recovery_statistics_AW(A, W)
+                            results[ii, jj, kk, ll] = recovery_statistics2_AW(A, W)
                         except (ValueError, AssertionError):
                             pass
         with h5py.File(results_file, 'w') as f:
             f.create_dataset('results', data=results)
 
     results_file = os.path.join(base_folder, fit_folder, 'null_results.h5')
-    if (not overwrite) or os.path.exists(results_file):
+    if (not overwrite) and os.path.exists(results_file):
         with h5py.File(results_file) as f:
             null_results = f['null_results'].value
     else:
@@ -245,7 +259,7 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                                 A = A_array[ii, ll]
                                 W = W_fits[ii, jj, kk, mm]
                                 assert (not np.isnan(A.sum())) and (not np.isnan(W.sum()))
-                                null_results[ii, jj, kk, loc] = recovery_statistics_AW(A, W)
+                                null_results[ii, jj, kk, loc] = recovery_statistics2_AW(A, W)
                                 loc += 1
                             except (ValueError, AssertionError):
                                 pass

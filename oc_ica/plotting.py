@@ -1299,17 +1299,23 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
 
             color = styles.colors[m]
             label = styles.labels[m]
+            print(results.shape, null_results.shape)
 
             if m == 'SM':
-                delta = np.tile(np.nanmean(results[ii, jjp, 0, :, 0]), lambdas.size)
-                mma = np.tile(np.nanmean(results[ii, jjp, 0, :, 1]), lambdas.size)
-                null_delta = np.tile(np.nanmean(null_results[ii, jjp, 0, :, 0]), lambdas.size)
-                null_mma = np.tile(np.nanmean(null_results[ii, jjp, 0, :, 1]), lambdas.size)
+                error = np.tile(np.nanmean(results[ii, jjp, 0, :]), lambdas.size)
+                null_error = np.tile(np.nanmean(null_results[ii, jjp, 0, :]), lambdas.size)
+                delta = np.tile(np.nanmean(results[ii, jjp, 0, :]), lambdas.size)
+                mma = np.tile(np.nanmean(results[ii, jjp, 0, :]), lambdas.size)
+                null_delta = np.tile(np.nanmean(null_results[ii, jjp, 0, :]), lambdas.size)
+                null_mma = np.tile(np.nanmean(null_results[ii, jjp, 0, :]), lambdas.size)
             else:
-                delta = np.nanmean(results[ii, jjp, :, :, 0], axis=1)
-                mma = np.nanmean(results[ii, jjp, :, :, 1], axis=1)
-                null_delta = np.nanmean(null_results[ii, jjp, :, :, 0], axis=1)
-                null_mma = np.nanmean(null_results[ii, jjp, :, :, 1], axis=1)
+                error = np.nanmean(results[ii, jjp, :, :], axis=-1)
+                null_error = np.nanmean(null_results[ii, jjp, :, :], axis=1)
+                delta = np.nanmean(results[ii, jjp, :, :], axis=1)
+                mma = np.nanmean(results[ii, jjp, :, :], axis=1)
+                null_delta = np.nanmean(null_results[ii, jjp, :, :], axis=1)
+                null_mma = np.nanmean(null_results[ii, jjp, :, :], axis=1)
+            print(error.shape, null_error.shape)
             if plot_3:
                 ae.semilogx(lambdas, delta, fmt, label=label, c=color,
                         lw=styles.lw,
@@ -1319,7 +1325,7 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
                         lw=styles.lw,
                             path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
-            ap.semilogx(lambdas, .5*(delta/null_delta + mma/null_mma), fmt,
+            ap.semilogx(lambdas, error / null_error, fmt,
                     label=label, c=color, lw=styles.lw,
                         path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
             """
@@ -1344,9 +1350,11 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
     if add_ylabel:
         ap.set_ylabel('Normalized\nMean', labelpad=ylabelpad,
                       fontsize=styles.label_fontsize)
+    """
     ap.set_ylim([0, 1.1])
     ap.set_yticks([0, 1])
     ap.set_yticklabels([0, 1], fontsize=styles.ticklabel_fontsize)
+    """
     ap.tick_params(labelsize=styles.ticklabel_fontsize)
     ap.tick_params(pad=0)
 
