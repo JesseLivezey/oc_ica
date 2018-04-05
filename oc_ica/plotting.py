@@ -450,8 +450,7 @@ def plot_figure3ab(panel, eps=1e-2,
                           labelpad=30)
         ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
                 fontsize=styles.label_fontsize,
-                labelpad=-120,
-                rotation=90)
+                labelpad=-90)
     else:
         raise ValueError('Choose a or b')
     if legend:
@@ -494,11 +493,11 @@ def plot_figure3d(f_name, save_path=None, ax=None):
 
 
 def plot_figure3(f_name, save_path=None, n_iter=10):
-    f = plt.figure(figsize=(5, 6))
-    left_gap = .12
+    f = plt.figure(figsize=(5, 5))
+    left_gap = .11
     right_gap = .02
     top_gap = .04
-    bot_gap = .065
+    bot_gap = .08
     v_gap = .1
     h_gap = .15
 
