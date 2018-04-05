@@ -1422,7 +1422,7 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
     ax.tick_params(pad=0)
 
 
-def plot_evals(save_path=None, fax=None, panel='c'):
+def plot_evals(save_path=None, ax=None, panel='a'):
     sin = np.sin
     cos = np.cos
     sqrt = np.sqrt
@@ -1448,12 +1448,10 @@ def plot_evals(save_path=None, fax=None, panel='c'):
     for ii, f in enumerate(l4_evals):
         l4_vals[ii] = f(thetas)
 
-    if fax is None:
+    if ax is None:
         f, ax = plt.subplots(1,
                              figsize=(5, 2))
-    else:
-        f, ax = fax
-    if panel == 'c':
+    if panel == 'a':
         for ii, e in enumerate(l2_vals):
             if ii == 0:
                 label = styles.labels['2']
@@ -1464,6 +1462,7 @@ def plot_evals(save_path=None, fax=None, panel='c'):
                     lw=styles.lw, label=label,
                     path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
     else:
+        assert panel == 'b'
         for ii, e in enumerate(l4_vals):
             if ii == 0:
                 label = styles.labels['4']
@@ -1488,9 +1487,6 @@ def plot_evals(save_path=None, fax=None, panel='c'):
     ax.set_ylabel(r'$e_i$ (arb. units)', labelpad=-0, fontsize=styles.label_fontsize)
     ax.legend(loc='lower right', frameon=False, fontsize=styles.legend_fontsize)
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
-
-    if fax is None:
-        f.tight_layout()
 
     if save_path is not None:
         plt.savefig(save_path, dpi=300)
