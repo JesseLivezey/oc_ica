@@ -83,79 +83,6 @@ def plot_figure1c(save_path=None, fax=None):
         plt.savefig(save_path, dpi=300)
 
 
-def plot_evals(save_path=None, fax=None, panel='c'):
-    sin = np.sin
-    cos = np.cos
-    sqrt = np.sqrt
-    n_pts = 100
-    l2_evals = [lambda th: th*0.,
-                lambda th: 8*sin(th)**2,
-                lambda th: 8*cos(th)**2 ]
-    l4_evals = [lambda th: 4*(cos(2*th)-cos(4*th)),
-                lambda th: -2*cos(2*th)-14*cos(4*th)
-                           -sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th)),
-                lambda th: -2*cos(2*th)-14*cos(4*th)
-                           +sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th))]
-
-
-    thetas = np.linspace(-np.pi/4., np.pi/4., n_pts)
-    l2_vals = np.zeros((len(l2_evals), n_pts))
-    l4_vals = np.zeros((len(l2_evals), n_pts))
-
-    col = np.linspace(0, .75, len(l2_evals))
-
-    for ii, f in enumerate(l2_evals):
-        l2_vals[ii] = f(thetas)
-    for ii, f in enumerate(l4_evals):
-        l4_vals[ii] = f(thetas)
-
-    if fax is None:
-        f, ax = plt.subplots(1,
-                             figsize=(5, 2))
-    else:
-        f, ax = fax
-    if panel == 'c':
-        for ii, e in enumerate(l2_vals):
-            if ii == 0:
-                label = styles.labels['2']
-            else:
-                label = None
-            ax.plot(thetas, e/9.,
-                    c=styles.colors['2'],
-                    lw=styles.lw, label=label,
-                    path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-    else:
-        for ii, e in enumerate(l4_vals):
-            if ii == 0:
-                label = styles.labels['4']
-            else:
-                label = None
-            ax.plot(thetas, e/29., c=styles.colors['4'], lw=styles.lw,
-                    label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-
-    ax.grid()
-
-    ax.set_xlim([thetas[0], thetas[-1]])
-    ax.set_ylim(-1, 1)
-    ax.set_yticks(np.linspace(-1, 1, 3))
-    ax.set_xticks(np.linspace(thetas[0], thetas[-1], 3))
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-    ax.get_yaxis().set_tick_params(direction='out')
-    ax.get_xaxis().set_tick_params(direction='out')
-    ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
-                         np.pi*180.).astype(int))
-    ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize, labelpad=0)
-    ax.set_ylabel(r'$e_i$ (arb. units)', labelpad=-0, fontsize=styles.label_fontsize)
-    ax.legend(loc='lower right', frameon=False, fontsize=styles.legend_fontsize)
-    ax.tick_params(labelsize=styles.ticklabel_fontsize)
-
-    if fax is None:
-        f.tight_layout()
-
-    if save_path is not None:
-        plt.savefig(save_path, dpi=300)
-
 def plot_figure1(save_path=None):
     def add_arrow(ax, dx, dy, c):
         return ax.add_patch(mpl.patches.FancyArrow(0, 0, dx, dy, width=.02,
@@ -295,6 +222,9 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None, subset=True):
         W_0[ii] = W_0p
 
     faxes = plot_angles_broken_axis(W, W_0, degeneracy_controls, faxes=faxes)
+    for ax in faxes[1]:
+        ax.tick_params(labelsize=styles.ticklabel_fontsize)
+        ax.tick_params(pad=2)
     """
     for ax in faxes[1]:
         ax.get_yaxis().set_tick_params(direction='out')
@@ -343,145 +273,8 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None,
     ax.get_xaxis().set_tick_params(direction='out')
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
-    if save_path is not None:
-        plt.savefig(save_path)
-
-
-def plot_figure2c(save_path=None, n_iter=10, ax=None):
-    """
-    Parameters:
-    ----------
-    save_path: string, optional
-           Figure_path+figure_name+.format to store the figure.
-           If figure is stored, it is not displayed.
-    """
-    rng = np.random.RandomState(20161206)
-    overcompleteness = 2
-    n_mixtures = 64
-    n_sources = n_mixtures*overcompleteness
-    initial_conditions = ['random']
-    degeneracy_controls = ['COULOMB', 'RANDOM', 'COULOMB_F', 'RANDOM_F']
-    W = np.full((len(degeneracy_controls), n_iter, n_sources,
-                 n_mixtures), np.nan)
-    W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
-    for ii in range(n_iter):
-        Wp, W_0p = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
-                                          n_sources, n_mixtures, rng=rng)
-        W[:, ii] = Wp[0]
-        W_0[ii] = W_0p
-
-    ax = plot_angles_1column(W, W_0, degeneracy_controls,
-                        plot_init=False,
-                        pe_style=[True, True, True, True],
-                        ax=ax)
-    ax.set_xlim(81.5, 90)
-    ax.set_xticks([82, 90])
-    ax.get_yaxis().set_tick_params(direction='out')
-    ax.get_xaxis().set_tick_params(direction='out')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-    ax.legend(loc='lower center', frameon=False,
-            fontsize=styles.legend_fontsize)
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
-    if save_path is not None:
-        plt.savefig(save_path)
-
-
-def plot_figure2de(panel, eps=1e-2,
-                   legend=False, save_path=None,
-                   ax=None, add_xlabel=False):
-    """
-    Reproduces the panels c and d of figure 2.
-
-    Parameters
-    ----------
-    panel: string, optional
-         Which panel, options: 'd', 'e'
-    save_path: string, optional
-         figure_path+figure_name+.format to store the figure.
-         If figure is stored, it is not displayed.
-    """
-    formatter = mpl.ticker.StrMethodFormatter('{x:.1g}')
-    if ax is None:
-        fig = plt.figure('costs',figsize=(3,1.5))
-        fig.clf()
-        ax = plt.axes([.16,.15,.8,.81])
-    costs = ['2', 'COULOMB', 'RANDOM', '4']
-    col = np.linspace(0,1,len(costs))
-    if panel=='e':
-        xx = np.linspace(.6, 1., 100)
-        ax.set_yscale('log')
-    elif panel=='d':
-        xx = np.linspace(-.2, .2, 100)
-    else:
-        raise ValueError('Choose d or e')
-
-    fun = [lambda x: x,
-           lambda x: x/(1.+eps-x**2)**(3/2),
-           lambda x: (2*x)/(1.+eps-x**2),
-           lambda x: x**3]
-    for ii, cost in enumerate(costs):
-        ax.plot(xx, fun[ii](xx), styles.line_styles[cost],
-                c=styles.colors[cost], lw=styles.lw,
-                label=styles.labels[cost],
-                path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-
-    if panel == 'e':
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.get_yaxis().set_tick_params(direction='out')
-        ax.spines['left'].set_smart_bounds(True)
-        ax.yaxis.set_ticks_position('left')
-    elif panel=='d':
-        ax.spines['right'].set_position('zero')
-        ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_position('zero')
-        ax.spines['top'].set_visible(False)
-        ax.get_yaxis().set_tick_params(direction='out')
-        ax.spines['right'].set_smart_bounds(True)
-        ax.yaxis.set_ticks_position('right')
-        ax.yaxis.set_label_position("right")
-
-    ax.spines['bottom'].set_smart_bounds(True)
-    ax.xaxis.set_ticks_position('bottom')
-    ax.get_xaxis().set_tick_params(direction='out')
-    ax.set_xlim(np.min(xx),np.max(xx))
-    ax.minorticks_off()
-    for spine in ax.spines.values():
-        spine.set_zorder(-10)
-
-    if panel=='e':
-        ax.set_ylim([1e-1, 5e1])
-        ax.set_xticks(np.arange(0.6, 1.1, .2))
-        ax.xaxis.set_major_formatter(formatter)
-        if add_xlabel:
-            ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize,
-                    labelpad=0)
-        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
-                fontsize=styles.label_fontsize,
-                labelpad=0)
-        ax.tick_params(pad=0)
-    elif panel=='d':
-        ax.set_ylim(-.1,.1)
-        ax.set_xticks(np.arange(-.2,.21,.2))
-        ax.xaxis.set_major_formatter(formatter)
-        ax.set_yticks(np.arange(-.1,.11,.1))
-        ax.yaxis.get_major_ticks()[1].set_visible(False)
-        ax.xaxis.get_majorticklabels()[1].set_horizontalalignment('left')
-        ax.yaxis.set_major_formatter(formatter)
-        if add_xlabel:
-            ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize,
-                          labelpad=30)
-        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
-                fontsize=styles.label_fontsize,
-                labelpad=-120,
-                rotation=90)
-    else:
-        raise ValueError
-    if legend:
-        ax.legend(loc='upper left',frameon=False,ncol=1,
-                  fontsize=styles.legend_fontsize)
-
+    ax.tick_params(pad=2)
     if save_path is not None:
         plt.savefig(save_path)
 
@@ -526,12 +319,229 @@ def plot_figure2(save_path=None, n_iter=10, subset=True):
         plt.show()
 
 
+def plot_figure3c(save_path=None, n_iter=10, ax=None):
+    """
+    Parameters:
+    ----------
+    save_path: string, optional
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
+    """
+    rng = np.random.RandomState(20161206)
+    overcompleteness = 2
+    n_mixtures = 64
+    n_sources = n_mixtures*overcompleteness
+    initial_conditions = ['random']
+    degeneracy_controls = ['COULOMB', 'RANDOM', 'COULOMB_F', 'RANDOM_F']
+    W = np.full((len(degeneracy_controls), n_iter, n_sources,
+                 n_mixtures), np.nan)
+    W_0 = np.full((n_iter, n_sources, n_mixtures), np.nan)
+    for ii in range(n_iter):
+        Wp, W_0p = analysis.evaluate_dgcs(initial_conditions, degeneracy_controls,
+                                          n_sources, n_mixtures, rng=rng)
+        W[:, ii] = Wp[0]
+        W_0[ii] = W_0p
+
+    ax = plot_angles_1column(W, W_0, degeneracy_controls,
+                        plot_init=False,
+                        pe_style=[True, True, True, True],
+                        ax=ax)
+    ax.set_xlim(81.5, 90)
+    ax.set_xticks([82, 90])
+    ax.get_yaxis().set_tick_params(direction='out')
+    ax.get_xaxis().set_tick_params(direction='out')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.legend(loc='lower center', frameon=False,
+            fontsize=styles.legend_fontsize)
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    if save_path is not None:
+        plt.savefig(save_path)
+
+
+def plot_figure3ab(panel, eps=1e-2,
+                   legend=False, save_path=None,
+                   ax=None, add_xlabel=False):
+    """
+    Reproduces the panels c and d of figure 2.
+
+    Parameters
+    ----------
+    panel: string, optional
+         Which panel, options: 'd', 'e'
+    save_path: string, optional
+         figure_path+figure_name+.format to store the figure.
+         If figure is stored, it is not displayed.
+    """
+    formatter = mpl.ticker.StrMethodFormatter('{x:.1g}')
+    if ax is None:
+        fig = plt.figure('costs',figsize=(3,1.5))
+        fig.clf()
+        ax = plt.axes([.16,.15,.8,.81])
+    costs = ['2', 'COULOMB', 'RANDOM', '4']
+    col = np.linspace(0,1,len(costs))
+    if panel=='a':
+        xx = np.linspace(.6, 1., 100)
+        ax.set_yscale('log')
+    elif panel=='b':
+        xx = np.linspace(-.2, .2, 100)
+    else:
+        raise ValueError('Choose a or b')
+
+    fun = [lambda x: x,
+           lambda x: x/(1.+eps-x**2)**(3/2),
+           lambda x: (2*x)/(1.+eps-x**2),
+           lambda x: x**3]
+    for ii, cost in enumerate(costs):
+        ax.plot(xx, fun[ii](xx), styles.line_styles[cost],
+                c=styles.colors[cost], lw=styles.lw,
+                label=styles.labels[cost],
+                path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+
+    if panel == 'a':
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.get_yaxis().set_tick_params(direction='out')
+        ax.spines['left'].set_smart_bounds(True)
+        ax.yaxis.set_ticks_position('left')
+    elif panel=='b':
+        ax.spines['right'].set_position('zero')
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_position('zero')
+        ax.spines['top'].set_visible(False)
+        ax.get_yaxis().set_tick_params(direction='out')
+        ax.spines['right'].set_smart_bounds(True)
+        ax.yaxis.set_ticks_position('right')
+        ax.yaxis.set_label_position("right")
+    else:
+        raise ValueError('Choose a or b')
+
+    ax.spines['bottom'].set_smart_bounds(True)
+    ax.xaxis.set_ticks_position('bottom')
+    ax.get_xaxis().set_tick_params(direction='out')
+    ax.set_xlim(np.min(xx),np.max(xx))
+    ax.minorticks_off()
+    for spine in ax.spines.values():
+        spine.set_zorder(-10)
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=2)
+
+    if panel=='a':
+        ax.set_ylim([1e-1, 5e1])
+        ax.set_xticks(np.arange(0.6, 1.1, .2))
+        ax.xaxis.set_major_formatter(formatter)
+        if add_xlabel:
+            ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize,
+                    labelpad=0)
+        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
+                fontsize=styles.label_fontsize,
+                labelpad=0)
+        ax.tick_params(pad=0)
+    elif panel=='b':
+        ax.set_ylim(-.1,.1)
+        ax.set_xticks(np.arange(-.2,.21,.2))
+        ax.xaxis.set_major_formatter(formatter)
+        ax.set_yticks(np.arange(-.1,.11,.1))
+        ax.yaxis.get_major_ticks()[1].set_visible(False)
+        ax.xaxis.get_majorticklabels()[1].set_horizontalalignment('left')
+        ax.yaxis.set_major_formatter(formatter)
+        if add_xlabel:
+            ax.set_xlabel(r'$\cos\,\theta$', fontsize=styles.label_fontsize,
+                          labelpad=30)
+        ax.set_ylabel(r'$\nabla C(\cos\,\theta)$',
+                fontsize=styles.label_fontsize,
+                labelpad=-120,
+                rotation=90)
+    else:
+        raise ValueError('Choose a or b')
+    if legend:
+        ax.legend(loc='upper left',frameon=False,ncol=1,
+                  fontsize=styles.legend_fontsize)
+
+    if save_path is not None:
+        plt.savefig(save_path)
+
+
+def plot_figure3d(f_name, save_path=None, ax=None):
+    with h5py.File(f_name) as f:
+        print f.keys()
+        W_fits = f['W_fits'].value
+        W_orig = f['W_orig'].value
+        models = f['models'].value
+        ocs = f['ocs'].value
+    _, _, n_iter, _, n_mixtures = W_fits.shape
+
+    min_coherence = np.zeros((len(models), len(ocs), n_iter))
+
+    for ii, model in enumerate(models):
+        for jj, oc in enumerate(ocs):
+            for kk in range(n_iter):
+                n_sources = int(float(oc) * n_mixtures)
+                min_coherence[ii, jj, kk] = analysis.compute_angles(W_fits[ii, jj, kk, :n_sources]).min()
+
+    x = [float(y) for y in ocs]
+    for ii, model in enumerate(models):
+            ax.plot(x, np.median(min_coherence[ii, :], axis=-1), styles.line_styles[model],
+                    label=styles.labels[model], c = styles.colors[model], lw=styles.lw,
+                   path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+            ax.plot(x, np.median(min_coherence[ii, :], axis=-1), '.',
+                    c = styles.colors[model])
+    ax.set_xlabel('Overcompleteness', fontsize=styles.label_fontsize)
+    ax.set_ylabel('Minimum pairwise angle', fontsize=styles.label_fontsize)
+    ax.set_yticks([60, 70, 80, 90])
+    ax.set_xticks([1, 1.5, 2, 2.5, 3])
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.legend(frameon=False, fontsize=styles.legend_fontsize)
+
+
+def plot_figure3(f_name, save_path=None, n_iter=10):
+    f = plt.figure(figsize=(5, 6))
+    left_gap = .12
+    right_gap = .02
+    top_gap = .04
+    bot_gap = .065
+    v_gap = .1
+    h_gap = .15
+
+    width = (1. - left_gap - right_gap - h_gap) / 2.
+    height = (1. - top_gap - bot_gap - v_gap) / 2.
+
+    height_half = (height - v_gap) / 2
+    y_1 = bot_gap + height + v_gap
+    dtop = .1
+    ax1 = f.add_axes([left_gap, y_1,
+                      width-dtop, height_half])
+    ax2 = f.add_axes([left_gap, y_1 + height_half + v_gap,
+                      width-dtop, height_half])
+    ax3 = f.add_axes([left_gap + width-dtop + h_gap, y_1,
+                      width+dtop, height])
+    ax4 = f.add_axes([left_gap, bot_gap,
+                      1. - left_gap - right_gap, height])
+
+    plot_figure3ab('a', ax=ax1, add_xlabel=True)
+    plot_figure3ab('b', add_xlabel=True, ax=ax2)
+    plot_figure3c(n_iter=n_iter, ax=ax3)
+    plot_figure3d(f_name, ax=ax4)
+
+    x1 = .025
+    y1 = .97
+    y2 = .75
+    x2 = .43
+    y3 = .45
+    f.text(x1, y1, 'A', fontsize=styles.letter_fontsize)
+    f.text(x1, y2, 'B', fontsize=styles.letter_fontsize)
+    f.text(x2, y1, 'C', fontsize=styles.letter_fontsize)
+    f.text(x1, y3, 'D', fontsize=styles.letter_fontsize)
+
+    if save_path is not None:
+        plt.savefig(save_path)
+
 def plot_figure2_old(save_path=None, n_iter=10, subset=True):
     f = plt.figure(figsize=(5, 5))
     left_gap = .1155
     right_gap = .01625
     top_gap = .04
-    bot_gap = .0612
+    bot_gap = .065
     slice_gap = .012
     width = .37
 
@@ -1445,3 +1455,77 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.tick_params(pad=0)
+
+
+def plot_evals(save_path=None, fax=None, panel='c'):
+    sin = np.sin
+    cos = np.cos
+    sqrt = np.sqrt
+    n_pts = 100
+    l2_evals = [lambda th: th*0.,
+                lambda th: 8*sin(th)**2,
+                lambda th: 8*cos(th)**2 ]
+    l4_evals = [lambda th: 4*(cos(2*th)-cos(4*th)),
+                lambda th: -2*cos(2*th)-14*cos(4*th)
+                           -sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th)),
+                lambda th: -2*cos(2*th)-14*cos(4*th)
+                           +sqrt(2)*sqrt(34-2*cos(2*th)+cos(4*th)-2*cos(6*th)+33*cos(8*th))]
+
+
+    thetas = np.linspace(-np.pi/4., np.pi/4., n_pts)
+    l2_vals = np.zeros((len(l2_evals), n_pts))
+    l4_vals = np.zeros((len(l2_evals), n_pts))
+
+    col = np.linspace(0, .75, len(l2_evals))
+
+    for ii, f in enumerate(l2_evals):
+        l2_vals[ii] = f(thetas)
+    for ii, f in enumerate(l4_evals):
+        l4_vals[ii] = f(thetas)
+
+    if fax is None:
+        f, ax = plt.subplots(1,
+                             figsize=(5, 2))
+    else:
+        f, ax = fax
+    if panel == 'c':
+        for ii, e in enumerate(l2_vals):
+            if ii == 0:
+                label = styles.labels['2']
+            else:
+                label = None
+            ax.plot(thetas, e/9.,
+                    c=styles.colors['2'],
+                    lw=styles.lw, label=label,
+                    path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+    else:
+        for ii, e in enumerate(l4_vals):
+            if ii == 0:
+                label = styles.labels['4']
+            else:
+                label = None
+            ax.plot(thetas, e/29., c=styles.colors['4'], lw=styles.lw,
+                    label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+
+    ax.grid()
+
+    ax.set_xlim([thetas[0], thetas[-1]])
+    ax.set_ylim(-1, 1)
+    ax.set_yticks(np.linspace(-1, 1, 3))
+    ax.set_xticks(np.linspace(thetas[0], thetas[-1], 3))
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.get_yaxis().set_tick_params(direction='out')
+    ax.get_xaxis().set_tick_params(direction='out')
+    ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
+                         np.pi*180.).astype(int))
+    ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize, labelpad=0)
+    ax.set_ylabel(r'$e_i$ (arb. units)', labelpad=-0, fontsize=styles.label_fontsize)
+    ax.legend(loc='lower right', frameon=False, fontsize=styles.legend_fontsize)
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+
+    if fax is None:
+        f.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
