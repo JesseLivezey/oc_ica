@@ -95,7 +95,7 @@ def recovery_statistics2_AW(A, W):
         angles[ii] = P[x, y]
         P[x] = -np.inf
         P[:, y] = -np.inf
-    return np.median(angles)
+    return np.arccos(np.median(angles))
 
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)

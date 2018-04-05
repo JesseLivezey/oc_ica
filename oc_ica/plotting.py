@@ -464,7 +464,6 @@ def plot_figure3ab(panel, eps=1e-2,
 
 def plot_figure3d(f_name, save_path=None, ax=None):
     with h5py.File(f_name) as f:
-        print f.keys()
         W_fits = f['W_fits'].value
         W_orig = f['W_orig'].value
         models = f['models'].value
@@ -958,7 +957,6 @@ def plot_figure4(bases1, models1, bases2, models2,
     n_mixtures = bases3.shape[-1]
     w_pairs = np.zeros((width * height, n_mixtures))
     w_pairs = np.full((width * height, n_mixtures), np.nan)
-    print(models3)
     for ii, b in enumerate(bases3):
         w = b[0]
         abs_gram = abs(w.dot(w.T))
@@ -1278,17 +1276,10 @@ def plot_GaborFit_envelope(params, model, save_path=None,
 
 
 def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
-                       priors, n_prior, axes,
+                       priors, n_prior, ax,
                        add_ylabel=False):
     labelpad = 0
     ylabelpad = -5
-    if isinstance(axes, list):
-        plot_3 = True
-        assert len(axes) == 3
-        ae, am, ap = axes
-    else:
-        plot_3 = False
-        ap = axes
 
     p = priors[n_prior]
     ii = n_prior
@@ -1299,33 +1290,15 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
 
             color = styles.colors[m]
             label = styles.labels[m]
-            print(results.shape, null_results.shape)
 
             if m == 'SM':
                 error = np.tile(np.nanmean(results[ii, jjp, 0, :]), lambdas.size)
                 null_error = np.tile(np.nanmean(null_results[ii, jjp, 0, :]), lambdas.size)
-                delta = np.tile(np.nanmean(results[ii, jjp, 0, :]), lambdas.size)
-                mma = np.tile(np.nanmean(results[ii, jjp, 0, :]), lambdas.size)
-                null_delta = np.tile(np.nanmean(null_results[ii, jjp, 0, :]), lambdas.size)
-                null_mma = np.tile(np.nanmean(null_results[ii, jjp, 0, :]), lambdas.size)
             else:
                 error = np.nanmean(results[ii, jjp, :, :], axis=-1)
                 null_error = np.nanmean(null_results[ii, jjp, :, :], axis=1)
-                delta = np.nanmean(results[ii, jjp, :, :], axis=1)
-                mma = np.nanmean(results[ii, jjp, :, :], axis=1)
-                null_delta = np.nanmean(null_results[ii, jjp, :, :], axis=1)
-                null_mma = np.nanmean(null_results[ii, jjp, :, :], axis=1)
-            print(error.shape, null_error.shape)
-            if plot_3:
-                ae.semilogx(lambdas, delta, fmt, label=label, c=color,
-                        lw=styles.lw,
-                            path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
-                am.semilogx(lambdas, mma, fmt, label=label, c=color,
-                        lw=styles.lw,
-                            path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
-
-            ap.semilogx(lambdas, error / null_error, fmt,
+            ax.semilogx(lambdas, error / null_error, fmt,
                     label=label, c=color, lw=styles.lw,
                         path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
             """
@@ -1336,38 +1309,22 @@ def recovery_vs_lambda(models, keep_models, results, null_results, lambdas,
                 ap.semilogx(lambdas, .5*(delta/null_delta + mma/null_mma), '.', c=color,
                             ms=10, markeredgecolor='k')
                             """
-    if plot_3:
-        ae.set_title(p)
-        ae.set_ylim([0, 50])
-        am.set_title(p)
-        am.set_ylim([0, 65])
-        ap.set_title(p)
-        if add_ylabel:
-            ae.set_ylabel(r'$\Delta P$', labelpad=ylabelpad,
-                          fontsize=styles.label_fontsize)
-            am.set_ylabel(r'median($p_{\mathrm{min}}$)', labelpad=ylabelpad,
-                          fontsize=styles.label_fontsize)
     if add_ylabel:
-        ap.set_ylabel('Normalized\nMean', labelpad=ylabelpad,
+        ax.set_ylabel('Normalized\nError', labelpad=ylabelpad,
                       fontsize=styles.label_fontsize)
-    """
-    ap.set_ylim([0, 1.1])
-    ap.set_yticks([0, 1])
-    ap.set_yticklabels([0, 1], fontsize=styles.ticklabel_fontsize)
-    """
-    ap.tick_params(labelsize=styles.ticklabel_fontsize)
-    ap.tick_params(pad=0)
+    ax.set_ylim([0, 1.1])
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels([0, 1], fontsize=styles.ticklabel_fontsize)
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=0)
 
-    if not plot_3:
-        axes = [ap]
-    for ax in axes:
-        ax.minorticks_off()
-        ax.get_yaxis().set_tick_params(direction='out')
-        ax.get_xaxis().set_tick_params(direction='out')
-        ax.xaxis.set_ticks_position('bottom')
-        ax.yaxis.set_ticks_position('left')
-        ax.set_xlabel(r'$\lambda$', labelpad=labelpad,
-                      fontsize=styles.label_fontsize)
+    ax.minorticks_off()
+    ax.get_yaxis().set_tick_params(direction='out')
+    ax.get_xaxis().set_tick_params(direction='out')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.set_xlabel(r'$\lambda$', labelpad=labelpad,
+                  fontsize=styles.label_fontsize)
 
 
 def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
@@ -1410,17 +1367,17 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         for kk, m in enumerate(keep_models):
             kkp = models.index(m)
             if m == 'SM':
-                mean_null = np.nanmean(null_results[n_prior, kkp, 0], axis=0, keepdims=True)
+                mean_null = np.nanmean(null_results[n_prior, kkp, 0], keepdims=True)
                 r = results[n_prior, kkp, 0] / mean_null
-                pos = np.nanmean(r, axis=0).sum()
-                std = np.nanstd(r.sum(axis=-1))
+                pos = np.nanmean(r)
+                std = np.nanstd(r)
             else:
-                mean_null = np.nanmean(null_results[n_prior, kkp], axis=1, keepdims=True)
+                mean_null = np.nanmean(null_results[n_prior, kkp], axis=-1, keepdims=True)
                 r = results[n_prior, kkp] / mean_null
-                r_mean = np.nanmean(r, axis=1).sum(axis=1)
+                r_mean = np.nanmean(r, axis=-1)
                 r_min_idx = r_mean.argmin()
-                pos = np.nanmean(r[r_min_idx], axis=0).sum()
-                std = np.nanstd(r[r_min_idx].sum(axis=-1))
+                pos = np.nanmean(r[r_min_idx], axis=0)
+                std = np.nanstd(r[r_min_idx])
             y[kk, ii] = pos
             y_std[kk, ii] = std
 
@@ -1441,18 +1398,18 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_xlim(1.5, 16.5)
         ax.set_xticks([2, 9, 16])
 
-    ax.set_ylim(0, 1)
-    ax.set_yticks([0, 1])
+    ax.set_ylim(0, .5)
+    ax.set_yticks([0, .5])
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
 
     if add_xlabel:
         ax.set_xlabel(xlabel, labelpad=labelpad,
                       fontsize=styles.label_fontsize)
     if add_ylabel:
-        ax.set_ylabel('Normalized\nMean', labelpad=ylabelpad, fontsize=styles.label_fontsize)
+        ax.set_ylabel('Normalized\nError', labelpad=ylabelpad, fontsize=styles.label_fontsize)
 
     if legend:
-        ax.legend(loc='upper left', bbox_to_anchor=(-1.3, 1.), frameon=False,
+        ax.legend(loc='upper left', bbox_to_anchor=(-1.5, 1.), frameon=False,
                    fontsize=styles.legend_fontsize)
 
     ax.minorticks_off()
