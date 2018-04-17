@@ -468,6 +468,7 @@ def plot_figure3d(f_name, save_path=None, ax=None):
         models = f['models'].value
         ocs = f['ocs'].value
     _, _, n_iter, _, n_mixtures = W_fits.shape
+    print(W_fits.shape)
 
     min_coherence = np.zeros((len(models), len(ocs), n_iter))
 
@@ -478,12 +479,16 @@ def plot_figure3d(f_name, save_path=None, ax=None):
                 min_coherence[ii, jj, kk] = analysis.compute_angles(W_fits[ii, jj, kk, :n_sources]).min()
 
     x = [float(y) for y in ocs]
+    xp = np.linspace(min(x), max(x), 100)
+    limit = 180 * np.arccos(analysis.welch_bouch(n_mixtures, xp * n_mixtures)) / np.pi
     for ii, model in enumerate(models):
+        if 'RANDOM' not in model:
             ax.plot(x, np.median(min_coherence[ii, :], axis=-1), styles.line_styles[model],
                     label=styles.labels[model], c = styles.colors[model], lw=styles.lw,
                    path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
             ax.plot(x, np.median(min_coherence[ii, :], axis=-1), '.',
                     c = styles.colors[model])
+    ax.plot(xp, limit, '--', c='gray', label='Welch Bound')
     ax.set_xlabel('Overcompleteness', fontsize=styles.label_fontsize)
     ax.set_ylabel('Minimum pairwise angle', fontsize=styles.label_fontsize)
     ax.set_yticks([60, 70, 80, 90])

@@ -12,6 +12,11 @@ from oc_ica.models import ica
 reload(ica)
 
 
+def welch_bouch(n_mixtures, n_sources):
+    return np.sqrt(1. * (n_sources - n_mixtures) / (n_mixtures *
+        (n_sources - 1.)))
+
+
 def normalize_A(A):
     return A/np.linalg.norm(A, axis=0, keepdims=True)
 
