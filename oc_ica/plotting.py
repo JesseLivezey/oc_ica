@@ -461,7 +461,7 @@ def plot_figure3ab(panel, eps=1e-2,
         plt.savefig(save_path)
 
 
-def plot_figure3d(f_name, save_path=None, ax=None):
+def plot_figure3d(f_name, save_path=None, ax=None, sup=False):
     with h5py.File(f_name) as f:
         W_fits = f['W_fits'].value
         W_orig = f['W_orig'].value
@@ -477,12 +477,18 @@ def plot_figure3d(f_name, save_path=None, ax=None):
             for kk in range(n_iter):
                 n_sources = int(float(oc) * n_mixtures)
                 min_coherence[ii, jj, kk] = analysis.compute_angles(W_fits[ii, jj, kk, :n_sources]).min()
+    if sup:
+        exclude = ['2', '4']
+        ax.set_yticks([80, 90])
+    else:
+        ax.set_yticks([60, 70, 80, 90])
+        exclude = ['RANDOM', 'RANDOM_F']
 
     x = [float(y) for y in ocs]
     xp = np.linspace(min(x), max(x), 100)
     limit = 180 * np.arccos(analysis.welch_bouch(n_mixtures, xp * n_mixtures)) / np.pi
     for ii, model in enumerate(models):
-        if 'RANDOM' not in model:
+        if model not in exclude:
             ax.plot(x, np.median(min_coherence[ii, :], axis=-1), styles.line_styles[model],
                     label=styles.labels[model], c = styles.colors[model], lw=styles.lw,
                    path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
@@ -491,10 +497,11 @@ def plot_figure3d(f_name, save_path=None, ax=None):
     ax.plot(xp, limit, '--', c='gray', label='Welch Bound')
     ax.set_xlabel('Overcompleteness', fontsize=styles.label_fontsize)
     ax.set_ylabel('Minimum pairwise angle', fontsize=styles.label_fontsize)
-    ax.set_yticks([60, 70, 80, 90])
     ax.set_xticks([1, 1.5, 2, 2.5, 3])
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
     ax.legend(frameon=False, fontsize=styles.legend_fontsize)
+    if save_path is not None:
+        plt.savefig(save_path)
 
 
 def plot_figure3(f_name, save_path=None, n_iter=10):
