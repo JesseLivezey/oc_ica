@@ -468,7 +468,6 @@ def plot_figure3d(f_name, save_path=None, ax=None, sup=False):
         models = f['models'].value
         ocs = f['ocs'].value
     _, _, n_iter, _, n_mixtures = W_fits.shape
-    print(W_fits.shape)
 
     min_coherence = np.zeros((len(models), len(ocs), n_iter))
 
@@ -1007,7 +1006,7 @@ def plot_figure4(bases1, models1, bases2, models2,
 
 
 def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .75),
-                          thlabel=r'$\phi$', rlabel='frequency',
+                          thlabel=r'$\phi$', rlabel=r'log-$\lambda$',
                           ticklabels=True,
                           pos=None, labelx=True, labely=True):
     """
@@ -1016,6 +1015,7 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .75),
     problems for GridHelperCurveLinear for some reason
     """
     th0, th1 = thlim # deg
+    th1 -= 1
     r0, r1 = rlim
     thstep, rstep = step
 
@@ -1050,9 +1050,13 @@ def fractional_polar_axes(f, thlim=(0, 180), rlim=(0, 1), step=(45, .75),
     # add labels:
     if labely:
         a.axis["top"].label.set_text(thlabel)
+        xp, yp = a.axis["top"].label.get_position()
+        a.yaxis.set_label_coords(xp, yp)
+        xp, yp = a.axis["top"].label.get_position()
         a.axis['top'].label.set_size(styles.label_fontsize)
     if labelx:
         a.axis["left"].label.set_text(rlabel)
+        a.axis["left"].label.set_pad(0)
         a.axis['left'].label.set_size(styles.label_fontsize)
 
     # create a parasite axes whose transData is theta, r:
@@ -1137,12 +1141,6 @@ def plot_GaborFit_xy(params, n_pixels, model,
     max_vy = np.max(params[6])
     xs = params[0]
     ys = params[1]
-    """
-    print xs.min(), xs.max()
-    print ys.min(), xs.max()
-    print np.sqrt(np.exp(params[5]))#/max_vx
-    print np.sqrt(np.exp(params[6]))#/max_vy
-    """
     for ii in range(params[0].size):
         x = xs[ii]
         y = ys[ii]
@@ -1206,14 +1204,16 @@ def plot_GaborFit_polar(params, model, save_path=None,
         fig.clf()
     else:
         fig = f
-    freq = params[4] / (2. * np.pi)
+    wl = 2. *np.sqrt(2) + np.exp(params[4])
+    wl = np.log(wl)
+    #wl /= freq.max()
     theta = params[2]/np.pi*180 % 180
     stdx = np.sqrt(np.exp(params[5]))
     stdy = np.sqrt(np.exp(params[6]))
-    ax = fractional_polar_axes(fig, rlim=(0, 1.2), step=(45, .4),
+    ax = fractional_polar_axes(fig, rlim=(0, 8.), step=(45, 4.),
                                pos=pos, labelx=labelx, labely=labely)
-    for ii in range(len(freq)):
-        ax.plot(theta[ii], freq[ii], 'o',
+    for ii in range(len(wl)):
+        ax.plot(theta[ii], wl[ii], 'o',
                 markerfacecolor=color,
                 markeredgecolor='k',
                 alpha=.4,
@@ -1254,11 +1254,12 @@ def plot_GaborFit_envelope(params, model, save_path=None,
         ax = f.add_subplot(*pos)
     varxs  = (np.exp(params[5]))
     varys  = (np.exp(params[6]))
-    freq = 5. * params[4] / (2. * np.pi)
+    wl = 2. *np.sqrt(2) + np.exp(params[4])
+    wl = np.log(wl)
     for ii in range(len(varxs)):
         varx  = varxs[ii]
         vary  = varys[ii]
-        plt.plot(varx, vary, 'o', ms=freq[ii], mew=1,
+        plt.plot(varx, vary, 'o', ms=wl[ii], mew=1,
                  markerfacecolor=color,
                  markeredgecolor='k', alpha=.4)
     ax.set_xlim(1e-0,2e1)
