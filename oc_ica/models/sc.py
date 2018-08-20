@@ -63,7 +63,6 @@ class SparseCoding(BaseEstimator, TransformerMixin):
         else:
             if n_sources > n_mixtures:
                 print('Overcomplete SC')
-        # print('Degeneracy control: {}'.format(degeneracy))
 
         self.fit_kwargs = fit_kwargs
 

@@ -17,6 +17,9 @@ class SC_Optimizer(Optimizer):
     """
     def __init__(self, lambd, **fit_kwargs):
         self.lambd = lambd
+        self.n_steps = fit_kwargs.get('n_steps', 25)
+        if self.n_steps is None:
+            self.n_steps = 25
         super(SC_Optimizer, self).__init__(**fit_kwargs)
 
     def fit(self, data, components_):
@@ -100,7 +103,7 @@ class SC_Hard(SC_Optimizer):
     def prior_cost(self, S):
         return abs(S).mean(axis=1).sum()
 
-    def transforms(self, W, X, n_steps=25):
+    def transforms(self, W, X):
         n_batch = X.shape[1]
         n_neurons = W.shape[0]
 
@@ -121,7 +124,7 @@ class SC_Hard(SC_Optimizer):
         outputs, updates = theano.scan(step,
                                        outputs_info=[S_init, S_init2, t],
                                        non_sequences=[W, X, self.lambd, self.L],
-                                       n_steps=n_steps)
+                                       n_steps=self.n_steps)
         xt, yt, tt = outputs
         S = xt[-1]
 
@@ -137,7 +140,7 @@ class SC_Hard(SC_Optimizer):
         epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
-        
+
         S, X_hat = self.transforms(Wn, X)
 
         self.transform_f = theano.function(inputs=[X, W], outputs=[S])
@@ -155,11 +158,11 @@ class SC_Hard(SC_Optimizer):
         return self.transform_f(X.astype('float32'), W.astype('float32'))
 
     def reconstruct(self, X, W):
-        reset_L(W)
+        self.reset_L(W)
         return self.reconstruct_f(X.astype('float32'), W.astype('float32'))
 
     def losses(self, X, W):
-        reset_L(W)
+        self.reset_L(W)
         return self.losses_f(X.astype('float32'), W.astype('float32'))
 
     def cost(self, Wn, X, **kwargs):
@@ -228,7 +231,7 @@ class SC_Soft(SC_Optimizer):
     def prior_cost(self, S):
         return T.log(T.cosh(S)).mean(axis=1).sum()
 
-    def transforms(self, W, X, n_steps=25):
+    def transforms(self, W, X):
         n_batch = X.shape[1]
         n_neurons = W.shape[0]
 
@@ -248,7 +251,7 @@ class SC_Soft(SC_Optimizer):
         outputs, updates = theano.scan(step,
                                        outputs_info=[S_init, S_init2, t],
                                        non_sequences=[W, X, self.lambd, self.L],
-                                       n_steps=n_steps)
+                                       n_steps=self.n_steps)
         xt, yt, tt = outputs
         S = xt[-1]
 
@@ -264,7 +267,7 @@ class SC_Soft(SC_Optimizer):
         epssumsq = T.maximum((W**2).sum(axis=1, keepdims=True), 1e-7)
         W_norm = T.sqrt(epssumsq)
         Wn = W / W_norm
-        
+
         S, X_hat = self.transforms(Wn, X)
 
         self.transform_f = theano.function(inputs=[X, W], outputs=[S])

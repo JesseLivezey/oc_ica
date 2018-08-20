@@ -25,7 +25,7 @@ import oc_ica.models.ica as ocica
 reload(ocica)
 from oc_ica import datasets as ds
 reload(ds)
-from oc_ica import gabor_fit as fit
+from gabor_fit import fit
 reload(fit)
 from oc_ica import styles
 reload(styles)

@@ -27,7 +27,9 @@ n_iter = args.n_iter
 
 scratch = os.getenv('SCRATCH', '')
 
-n_mixtures = patch_size**2           
+sc_lambdas = np.logspace(-1, 1, 10)
+
+n_mixtures = patch_size**2
 n_sources = int(float(OC) * n_mixtures)
 total_samples = 10 * n_mixtures * n_sources
 rng = np.random.RandomState(20170110)
@@ -35,8 +37,20 @@ if n_mixtures == 64 and n_sources == 128:
     sparsity = 38.
 elif n_mixtures == 256 and n_sources == 512:
     sparsity = 150.
+elif n_mixtures == 64 and n_sources == 64:
+    sparsity = 19.
+elif n_mixtures == 64 and n_sources == 192:
+    sparsity = 57.
 else:
     raise ValueError
+
+def fit_sc_model(n_sources, X, lambd, rng, **kwargs):
+    n_mixtures = X.shape[0]
+    model = sc.SparseCoding(n_mixtures, n_sources, lambd=lambd, rng=rng)
+    model.fit(X)
+    sparsity = model.losses(X)[2]
+    return model, lambd, sparsity
+
 
 def fit_ica_model(model, n_sources, X, sparsity, rng, **kwargs):
     p = None
@@ -47,8 +61,8 @@ def fit_ica_model(model, n_sources, X, sparsity, rng, **kwargs):
     except ValueError:
         if model == 'SM':
             n_mixtures = X.shape[0]
-            model = ica.ICA(n_mixtures, n_sources, degeneracy='SM',
-                            lambd=0.)
+            model = ica.ICA(n_mixtures, n_sources, degeneracy='SM', lambd=0.,
+                            rng=rng)
             model.fit(X)
             sparsity = model.losses(X)[2]
             return model, None, sparsity
@@ -71,16 +85,6 @@ X_mean = X.mean(axis=-1, keepdims=True)
 X -= X_mean
 X_zca, d, u = zca(X)
 
-W_fits = np.full((len(models), n_iter, n_sources, n_mixtures), np.nan)
-lambdas = np.full((len(models), n_iter), np.nan)
-sparsities = np.full((len(models), n_iter), np.nan)
-
-for ii, m in enumerate(models):
-    for jj in range(n_iter):
-        model, lambd, p = fit_ica_model(m, n_sources, X_zca, sparsity, rng)
-        W_fits[ii, jj] = model.components_
-        lambdas[ii, jj] = lambd
-        sparsities[ii, jj] = p
 
 fname = 'nat_images_mixtures-{}_sources-{}_models-{}.h5'.format(n_mixtures,
                                                                 n_sources,
@@ -92,7 +96,30 @@ try:
 except OSError:
     pass
 
-with h5py.File(os.path.join(scratch, folder, fname), 'w') as f:
-    f.create_dataset('W_fits', data=W_fits)
-    f.create_dataset('lambdas', data=lambdas)
-    f.create_dataset('sparsities', data=sparsities)
+if len(models) == 1 and models[0] == 'SC':
+    W_fits = np.full((n_iter, sc_lambdas.size, n_sources, n_mixtures), np.nan)
+    sparsities = np.full((n_iter, sc_lambdas.size), np.nan)
+    for jj in range(n_iter):
+        for kk, lambd in enumerate(sc_lambdas):
+            model, lambd, p = fit_sc_model(n_sources, X_zca, lambd, rng)
+            W_fits[jj, kk] = model.components_
+            sparsities[jj, kk] = p
+    with h5py.File(os.path.join(scratch, folder, fname), 'w') as f:
+        f.create_dataset('W_fits', data=W_fits)
+        f.create_dataset('lambdas', data=sc_lambdas)
+        f.create_dataset('sparsities', data=sparsities)
+else:
+    W_fits = np.full((len(models), n_iter, n_sources, n_mixtures), np.nan)
+    lambdas = np.full((len(models), n_iter), np.nan)
+    sparsities = np.full((len(models), n_iter), np.nan)
+    for ii, m in enumerate(models):
+        for jj in range(n_iter):
+            model, lambd, p = fit_ica_model(m, n_sources, X_zca, sparsity, rng)
+            W_fits[ii, jj] = model.components_
+            lambdas[ii, jj] = lambd
+            sparsities[ii, jj] = p
+
+    with h5py.File(os.path.join(scratch, folder, fname), 'w') as f:
+        f.create_dataset('W_fits', data=W_fits)
+        f.create_dataset('lambdas', data=lambdas)
+        f.create_dataset('sparsities', data=sparsities)
