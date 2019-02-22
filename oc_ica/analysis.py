@@ -102,6 +102,19 @@ def recovery_statistics2_AW(A, W):
         P[:, y] = -np.inf
     return np.arccos(np.median(angles))
 
+
+def recovery_statistics_hungarian_AW(A, W):
+    """
+    Compute recovery statistics for mixing matrix and
+    recovered matrix.
+    """
+    A = normalize_A(A)
+    W = normalize_W(W)
+    P = abs(W.dot(A))
+    row_ind, col_ind = sp.optimize.linear_sum_assignment(P)
+    inner_products = P[row_ind, col_ind]
+    return np.arccos(np.median(innder_products))
+
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
 #    return X.dot(X.T.dot(X)**(-1/2))
