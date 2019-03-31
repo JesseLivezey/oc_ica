@@ -110,10 +110,10 @@ def recovery_statistics_hungarian_AW(A, W):
     """
     A = normalize_A(A)
     W = normalize_W(W)
-    P = abs(W.dot(A))
+    P = -abs(W.dot(A))
     row_ind, col_ind = sp.optimize.linear_sum_assignment(P)
-    inner_products = P[row_ind, col_ind]
-    return np.arccos(np.median(innder_products))
+    inner_products = -P[row_ind, col_ind]
+    return np.arccos(np.median(inner_products))
 
 def decorr_complete(X):
     return np.linalg.inv(np.sqrt(X.dot(X.T))).dot(X)
@@ -256,7 +256,7 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                             A = A_array[ii, ll]
                             W = W_fits[ii, jj, kk, ll]
                             assert (not np.isnan(A.sum())) and (not np.isnan(W.sum()))
-                            results[ii, jj, kk, ll] = recovery_statistics2_AW(A, W)
+                            results[ii, jj, kk, ll] = recovery_statistics_hungarian_AW(A, W)
                         except (ValueError, AssertionError):
                             pass
         with h5py.File(results_file, 'w') as f:
@@ -277,7 +277,7 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                                 A = A_array[ii, ll]
                                 W = W_fits[ii, jj, kk, mm]
                                 assert (not np.isnan(A.sum())) and (not np.isnan(W.sum()))
-                                null_results[ii, jj, kk, loc] = recovery_statistics2_AW(A, W)
+                                null_results[ii, jj, kk, loc] = recovery_statistics_hungarian_AW(A, W)
                                 loc += 1
                             except (ValueError, AssertionError):
                                 pass

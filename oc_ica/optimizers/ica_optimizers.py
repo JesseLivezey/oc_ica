@@ -108,6 +108,8 @@ class Optimizer(object):
         """
         Create costs and intermediate values from input variables.
         """
+        L, D = Wn.shape
+        minC = T.sqrt((L - D) / (D.astype('float32') * (L - 1)))
         S, X_hat = self.transforms(Wn, X)
         gram = T.dot(Wn, Wn.T)
         gram_diff = gram-T.eye(gram.shape[0])
@@ -121,21 +123,35 @@ class Optimizer(object):
             degeneracy = 'Lp'
             p = 4
 
+        if degeneracy[0] == 'L':
+            try:
+                p = int(degeneracy[1:])
+                degeneracy = 'Lp'
+            except ValueError:
+                pass
+
         if degeneracy == 'RICA':
             error = .5 * T.sum((X_hat-X)**2, axis=0).mean()
+        elif degeneracy == 'M1':
+            sign = theano.gradient.disconnected_grad(T.switch(gram, 1., -1.))
+            error = T.sum(((gram - sign * ((1. - minC) * T.eye(L) +
+                minC))**2))
+        elif degeneracy == 'M2':
+            error = T.sum((gram**2-((1. - minC**2) * T.eye(L) + minC**2))**2)
         elif degeneracy == 'Lp':
             assert isinstance(p, int)
             if (p % 2) == 0:
                 error = gram_diff
                 for ii in range(p//2):
                     error = error**2
-                error = (1./p) * T.sum(error)
             else:
-                error = gram_diff
-                for ii in range(p//2):
-                    error = error**2
+                error = 1.
+                if p > 1:
+                    error = gram_diff
+                    for ii in range(p//2):
+                        error = error**2
                 error = error * abs(gram_diff)
-                error = (1./p) * T.sum(error)
+            error = (1./p) * T.sum(error)
         elif degeneracy == 'COULOMB':
             epsilon = 0.01
             error = T.sum(1. / T.sqrt(1. + epsilon - gram_diff**2) - 1./np.sqrt(1. + epsilon))

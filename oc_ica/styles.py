@@ -23,6 +23,9 @@ colors['INIT'] = 'red'
 model_line_styles = ['-', '-', '-', '-', '-', ':', '-', ':', '-', '-']
 line_styles = {m: s for m, s in zip(models, model_line_styles)}
 line_styles['INIT'] = '--'
+line_styles['2'] = '--'
+line_styles['SC'] = '-.'
+line_styles['SM'] = '-.'
 
 model_labels = ['Quasi-ortho', r'$L_2$', r'$L_4$', 'Soft Coher.', 'Coulomb',
                 'Flat Coulomb', 'Rand. Prior', 'Flat Rand. Prior',
@@ -43,3 +46,7 @@ letter_fontsize=12
 lw = 1
 angle_bins = np.linspace(0, 90, 181)
 ds = 'steps-pre'
+
+for ii, d in enumerate(['1', '3', '5', '6']):
+    colors[d] = 'C{}'.format(ii)
+    labels[d] = r'$L_{}$'.format(d)

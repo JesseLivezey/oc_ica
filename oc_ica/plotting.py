@@ -50,14 +50,16 @@ def plot_figure1c(save_path=None, fax=None):
         f, ax = fax
 
     label = styles.labels['2']
-    ax.plot(thetas, l2_vals/l2_vals.max(),
+    ax.plot(thetas, l2_vals/l2_vals.max(), styles.line_styles['2'],
             c=styles.colors['2'],
             lw=styles.lw, label=label,
             path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
     label = styles.labels['4']
-    ax.plot(thetas, l4_vals/l4_vals.max(), c=styles.colors['4'], lw=styles.lw,
-            label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
+    ax.plot(thetas, l4_vals/l4_vals.max(), styles.line_styles['4'],
+            c=styles.colors['4'], lw=styles.lw,
+            label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1,
+                foreground='k'), pe.Normal()])
 
     ax.grid()
 
@@ -71,6 +73,7 @@ def plot_figure1c(save_path=None, fax=None):
     ax.get_xaxis().set_tick_params(direction='out')
     ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
                          np.pi*180.).astype(int))
+    ax.set_xticklabels([r'$-\frac{\pi}{2}$', 0, r'$\frac{\pi}{2}$'])
     ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize, labelpad=0)
     ax.set_ylabel('Cost (scaled)', labelpad=-0, fontsize=styles.label_fontsize)
     ax.legend(loc='upper left', bbox_to_anchor=(.55, .65), frameon=False, fontsize=styles.legend_fontsize)
@@ -100,7 +103,7 @@ def plot_figure1(save_path=None):
                                               lw=2*styles.lw))
     dtheta1 = .2
     dtheta2 = np.pi/4
-    figsize = (4, 2.5)
+    figsize = (4, 5)
     xlim = [-np.cos(dtheta2)-.05, 1.05]
     ylim = [-.05, 1.05]
     ratio = (np.diff(xlim)/np.diff(ylim))[0]
@@ -133,8 +136,14 @@ def plot_figure1(save_path=None):
     ax1 = f.add_axes((top_lr_edge, 1-top_edge-height_top+mid_gap/2, width_top, height_top))
     ax2 = f.add_axes((.5+top_gap/2, 1-top_edge-height_top+mid_gap/2, width_top, height_top))
 
-    bot_height = 1.-bot_edge-mid_gap-top_edge-height_top
-    ax3 = f.add_axes((bot_l_edge, bot_edge,
+    bot_height = (1.-bot_edge-3*mid_gap-top_edge-height_top) / 3
+    ax3 = f.add_axes((bot_l_edge, bot_edge + 2*(bot_height+mid_gap),
+                      1.-bot_l_edge-bot_r_edge,
+                      bot_height))
+    ax4 = f.add_axes((bot_l_edge, bot_edge + (bot_height+mid_gap),
+                      1.-bot_l_edge-bot_r_edge,
+                      bot_height))
+    ax5 = f.add_axes((bot_l_edge, bot_edge,
                       1.-bot_l_edge-bot_r_edge,
                       bot_height))
 
@@ -177,10 +186,17 @@ def plot_figure1(save_path=None):
     ax2.add_patch(mpl.patches.Circle((0, 0), .01, color='b'))
 
     plot_figure1c(fax=(f, ax3))
+    plot_evals(ax=ax4)
+    plot_evals(ax=ax5, panel='b')
 
-    f.text(.00, .93, 'A', fontsize=styles.letter_fontsize)
-    f.text(.5, .93, 'B', fontsize=styles.letter_fontsize)
-    f.text(.00, .47, 'C', fontsize=styles.letter_fontsize)
+    y0 = .97
+    x0 = 0
+    x1 = .5
+    f.text(x0, y0, 'A', fontsize=styles.letter_fontsize)
+    f.text(x1, y0, 'B', fontsize=styles.letter_fontsize)
+    f.text(x0, .7, 'C', fontsize=styles.letter_fontsize)
+    f.text(x0, .5, 'D', fontsize=styles.letter_fontsize)
+    f.text(x0, .3, 'E', fontsize=styles.letter_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
     else:
@@ -206,7 +222,9 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None, subset=True):
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['pathological']
-    if subset:
+    if subset == 'powers':
+        degeneracy_controls = ['1', '3', '4', '5', '6']
+    elif subset:
         degeneracy_controls = ['2', '4','COULOMB',
                                'RANDOM']
     else:
@@ -222,6 +240,9 @@ def plot_figure2a(save_path=None, n_iter=10, faxes=None, subset=True):
         W_0[ii] = W_0p
 
     faxes = plot_angles_broken_axis(W, W_0, degeneracy_controls, faxes=faxes)
+    f, (ax1, ax2) = faxes
+    ax1.set_xticklabels([0, r'$\frac{\pi}{18}$'])
+    ax2.set_xticklabels([r'$\frac{4\pi}{9}$', r'$\frac{\pi}{2}$'])
     for ax in faxes[1]:
         ax.tick_params(labelsize=styles.ticklabel_fontsize)
         ax.tick_params(pad=2)
@@ -251,7 +272,9 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None,
     n_mixtures = 64
     n_sources = n_mixtures*overcompleteness
     initial_conditions = ['random']
-    if subset:
+    if subset == 'powers':
+        degeneracy_controls = ['1', '3', '4', '5', '6']
+    elif subset:
         degeneracy_controls = ['2', '4','COULOMB',
                                'RANDOM']
     else:
@@ -269,6 +292,9 @@ def plot_figure2b(save_path=None, n_iter=10, ax=None,
     ax = plot_angles_1column(W, W_0, degeneracy_controls,
                              ax=ax, add_ylabel=add_ylabel,
                              add_xlabel=add_xlabel)
+    ax.set_xlim(60, 90)
+    ax.set_xticks([60, 90])
+    ax.set_xticklabels([r'$\frac{\pi}{3}$', r'$\frac{\pi}{2}$'])
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
     ax.xaxis.set_ticks_position('bottom')
@@ -346,14 +372,15 @@ def plot_figure3c(save_path=None, n_iter=10, ax=None):
                         plot_init=False,
                         pe_style=[True, True, True, True],
                         ax=ax)
-    ax.set_xlim(81.5, 90)
-    ax.set_xticks([82, 90])
+    ax.set_xlim(80, 90)
+    ax.set_xticks([80, 90])
+    ax.set_xticklabels([r'$\frac{4\pi}{9}$', r'$\frac{\pi}{2}$'])
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
     ax.legend(loc='lower center', frameon=False,
-            fontsize=styles.legend_fontsize)
+              fontsize=styles.legend_fontsize)
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
@@ -479,8 +506,10 @@ def plot_figure3d(f_name, save_path=None, ax=None, sup=False):
     if sup:
         exclude = ['2', '4']
         ax.set_yticks([80, 90])
+        ax.set_yticklabels([r'$\frac{4\pi}{9}$', r'$\frac{\pi}{2}$'])
     else:
-        ax.set_yticks([60, 70, 80, 90])
+        ax.set_yticks([60, 90])
+        ax.set_yticklabels([r'$\frac{\pi}{3}$', r'$\frac{\pi}{2}$'])
         exclude = ['RANDOM', 'RANDOM_F']
 
     x = [float(y) for y in ocs]
@@ -647,9 +676,9 @@ def plot_angles_1column(W, W_0, costs, cmap=plt.cm.viridis,
         h, b = np.histogram(angles, styles.angle_bins)
         b = b[1:]
         h = h*1./np.sum(h)
-        st = styles.line_styles[cost]
-        c = styles.colors[cost]
-        label = styles.labels[cost]
+        c = styles.colors.get(cost, 'b')
+        label = styles.labels.get(cost, cost)
+        st = styles.line_styles.get(cost, '-')
         pe_arg = [pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()]
         if pe_style is not None:
             if not pe_style[ii]:
@@ -735,9 +764,9 @@ def plot_angles_broken_axis(W,W_0,costs, cmap=plt.cm.viridis,
         h, b = np.histogram(angles, styles.angle_bins)
         b = b[1:]
         h = h*1./np.sum(h)
-        c = styles.colors[cost]
-        label = styles.labels[cost]
-        st = styles.line_styles[cost]
+        c = styles.colors.get(cost, 'b')
+        label = styles.labels.get(cost, cost)
+        st = styles.line_styles.get(cost, '-')
         ax1.plot(b, h, st, drawstyle=styles.ds,
                  color=c, lw=styles.lw, label=label,
                  path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
@@ -927,12 +956,14 @@ def plot_figure4(bases1, models1, bases2, models2,
     ax_angles1.get_xaxis().set_tick_params(direction='out')
     ax_angles1.xaxis.set_ticks_position('bottom')
     ax_angles1.yaxis.set_ticks_position('left')
+    ax_angles1.set_xticklabels([0, r'$\frac{\pi}{2}$'])
 
     ax_angles2 = plt.subplot2grid((2, 2), (0, 1))
     ax_angles2.get_yaxis().set_tick_params(direction='out')
     ax_angles2.get_xaxis().set_tick_params(direction='out')
     ax_angles2.xaxis.set_ticks_position('bottom')
     ax_angles2.yaxis.set_ticks_position('left')
+    ax_angles2.set_xticklabels([r'$\frac{\pi}{4}$', r'$\frac{\pi}{2}$'])
 
     ax_bases = plt.subplot2grid((2, 2), (1, 0), colspan=2, rowspan=1)
 
@@ -1145,8 +1176,8 @@ def plot_GaborFit_xy(params, n_pixels, model,
         x = xs[ii]
         y = ys[ii]
         theta = params[2][ii]/np.pi*180
-        varx  = np.exp(params[5][ii])#/max_vx
-        vary  = np.exp(params[6][ii])#/max_vy
+        varx  = 2 * np.sqrt(np.exp(params[5][ii]))#/max_vx
+        vary  = 2 * np.sqrt(np.exp(params[6][ii]))#/max_vy
         ax.add_patch(plt.Rectangle((x,y),
                                    width=np.sqrt(varx)/5.,
                                    height=np.sqrt(vary)/5.,
@@ -1154,8 +1185,10 @@ def plot_GaborFit_xy(params, n_pixels, model,
                                    facecolor=color,
                                    edgecolor='k',
                                    alpha=.4))
-    ax.set_xlim(1, n_pixels-2)
-    ax.set_ylim(1, n_pixels-2)
+    ax.set_xlim(0, n_pixels-1)
+    ax.set_ylim(0, n_pixels-1)
+    ax.set_xticks([0, n_pixels-1])
+    ax.set_yticks([0, n_pixels-1])
     if labelx:
         ax.set_xlabel('x-position', labelpad=-1, fontsize=styles.label_fontsize)
     else:
@@ -1177,8 +1210,59 @@ def plot_GaborFit_xy(params, n_pixels, model,
     if save_path is not None:
         plt.savefig(save_path)
 
-
 def plot_GaborFit_polar(params, model, save_path=None,
+                        figsize=None, f=None, pos=None,
+                        labelx=True, labely=True):
+    """Plot Gabor parameters using a polar plot:
+       - radius: frequency
+       - angle : orientation of the Gabor
+    Parameters:
+    ----------
+    params : list of arrays
+           Gabor parameters :x, y, orientation, phase,
+                frequency, varx, vary
+           Dimension of arrays : n_sources
+    color : float, optional
+           Color value for viridis colormap
+    save_path: string, optional
+           Figure_path+figure_name+.format to store the figure.
+           If figure is stored, it is not displayed.
+    """
+    color = styles.colors[model]
+    if f is None:
+        if figsize is None:
+            figsize = (2,2)
+        fig = plt.figure('polar',figsize=figsize)
+        fig.clf()
+    else:
+        ax = f.add_subplot(*pos, polar=True)
+        fig = f
+    wl = 2. *np.sqrt(2) + np.exp(params[4])
+    print('l', wl.min(), wl.max(), np.median(wl), wl.std())
+    #wl = np.log(wl)
+    print('l', wl.min(), wl.max(), np.median(wl), wl.std())
+    lims = np.percentile(wl, [10, 90])
+    print(lims)
+    theta = params[2]/np.pi*180 % 180
+    stdx = np.sqrt(np.exp(params[5]))
+    stdy = np.sqrt(np.exp(params[6]))
+    ax.set_thetamin(0)
+    ax.set_thetamax(180)
+    ax.set_ylim(2, 4)
+    ax.set_yticks([2, 4])
+    for ii in range(len(wl)):
+        ax.plot(theta[ii], wl[ii], 'o',
+                markerfacecolor=color,
+                markeredgecolor='k',
+                alpha=.4,
+                ms=np.sqrt(stdx[ii] * stdy[ii]))
+    ax.tick_params(labelsize=styles.ticklabel_fontsize)
+    ax.tick_params(pad=0)
+
+    if save_path is not None:
+        plt.savefig(save_path)
+
+def plot_GaborFit_polar_old(params, model, save_path=None,
                         figsize=None, f=None, pos=None,
                         labelx=True, labely=True):
     """Plot Gabor parameters using a polar plot:
@@ -1206,11 +1290,10 @@ def plot_GaborFit_polar(params, model, save_path=None,
         fig = f
     wl = 2. *np.sqrt(2) + np.exp(params[4])
     wl = np.log(wl)
-    #wl /= freq.max()
     theta = params[2]/np.pi*180 % 180
     stdx = np.sqrt(np.exp(params[5]))
     stdy = np.sqrt(np.exp(params[6]))
-    ax = fractional_polar_axes(fig, rlim=(0, 8.), step=(45, 4.),
+    ax = fractional_polar_axes(fig, rlim=(0, 2.), step=(45, 1.),
                                pos=pos, labelx=labelx, labely=labely)
     for ii in range(len(wl)):
         ax.plot(theta[ii], wl[ii], 'o',
@@ -1255,14 +1338,14 @@ def plot_GaborFit_envelope(params, model, save_path=None,
     varxs  = (np.exp(params[5]))
     varys  = (np.exp(params[6]))
     wl = 2. *np.sqrt(2) + np.exp(params[4])
-    wl = np.log(wl)
+    wl = np.log(wl) * 2.
     for ii in range(len(varxs)):
         varx  = varxs[ii]
         vary  = varys[ii]
         plt.plot(varx, vary, 'o', ms=wl[ii], mew=1,
                  markerfacecolor=color,
                  markeredgecolor='k', alpha=.4)
-    ax.set_xlim(1e-0,2e1)
+    ax.set_xlim(1e-1,5e0)
     ax.set_ylim(1e-0,2e1)
     ax.set_yscale('log')
     ax.set_xscale('log')
@@ -1421,8 +1504,8 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_ylabel('Normalized\nError', labelpad=ylabelpad, fontsize=styles.label_fontsize)
 
     if legend:
-        ax.legend(loc='upper left', bbox_to_anchor=(-1.5, 1.), frameon=False,
-                   fontsize=styles.legend_fontsize)
+        ax.legend(loc='upper left', bbox_to_anchor=(-1.6, 1.), frameon=False,
+                   fontsize=styles.legend_fontsize, handlelength=3.)
 
     ax.minorticks_off()
     ax.get_yaxis().set_tick_params(direction='out')
@@ -1469,7 +1552,7 @@ def plot_evals(save_path=None, ax=None, panel='a'):
                 label = styles.labels['2']
             else:
                 label = None
-            ax.plot(thetas, e/9.,
+            ax.plot(thetas, e/9., styles.line_styles['2'],
                     c=styles.colors['2'],
                     lw=styles.lw, label=label,
                     path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
@@ -1480,7 +1563,7 @@ def plot_evals(save_path=None, ax=None, panel='a'):
                 label = styles.labels['4']
             else:
                 label = None
-            ax.plot(thetas, e/29., c=styles.colors['4'], lw=styles.lw,
+            ax.plot(thetas, e/29., styles.line_styles['4'], c=styles.colors['4'], lw=styles.lw,
                     label=label, path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
 
     ax.grid()
