@@ -108,11 +108,11 @@ def plot_figure1(save_path=None):
     ylim = [-.05, 1.05]
     ratio = (np.diff(xlim)/np.diff(ylim))[0]
 
-    top_lr_edge = .01
-    bot_l_edge = .1
+    top_lr_edge = .03
+    bot_l_edge = .15
     bot_r_edge = .025
     top_edge = top_lr_edge
-    bot_edge = .13
+    bot_edge = .075
     top_gap = .001
     mid_gap = .07
 
@@ -195,8 +195,8 @@ def plot_figure1(save_path=None):
     f.text(x0, y0, 'A', fontsize=styles.letter_fontsize)
     f.text(x1, y0, 'B', fontsize=styles.letter_fontsize)
     f.text(x0, .7, 'C', fontsize=styles.letter_fontsize)
-    f.text(x0, .5, 'D', fontsize=styles.letter_fontsize)
-    f.text(x0, .3, 'E', fontsize=styles.letter_fontsize)
+    f.text(x0, .47, 'D', fontsize=styles.letter_fontsize)
+    f.text(x0, .25, 'E', fontsize=styles.letter_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
     else:
@@ -374,13 +374,14 @@ def plot_figure3c(save_path=None, n_iter=10, ax=None):
                         ax=ax)
     ax.set_xlim(80, 90)
     ax.set_xticks([80, 90])
+    ax.set_ylim([1e-4, 2e0])
     ax.set_xticklabels([r'$\frac{4\pi}{9}$', r'$\frac{\pi}{2}$'])
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
-    ax.legend(loc='lower center', frameon=False,
-              fontsize=styles.legend_fontsize)
+    ax.legend(loc='upper center', frameon=False,
+              fontsize=styles.legend_fontsize, ncol=2, columnspacing=1)
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
     if save_path is not None:
         plt.savefig(save_path)
@@ -1243,13 +1244,17 @@ def plot_GaborFit_polar(params, model, save_path=None,
     print('l', wl.min(), wl.max(), np.median(wl), wl.std())
     lims = np.percentile(wl, [10, 90])
     print(lims)
-    theta = params[2]/np.pi*180 % 180
+    theta = (params[2]/np.pi*180) % 180
     stdx = np.sqrt(np.exp(params[5]))
     stdy = np.sqrt(np.exp(params[6]))
     ax.set_thetamin(0)
     ax.set_thetamax(180)
-    ax.set_ylim(2, 4)
-    ax.set_yticks([2, 4])
+    ax.set_xticks([0, np.pi/2])
+    ax.set_xticklabels([0, r'$\pi/2$'],
+            fontsize=styles.label_fontsize)
+    ax.set_ylim(.5, 7)
+    ax.set_yticks([1, 4, 7])
+    ax.set_xlabel(r'$\lambda$', labelpad=-3, fontsize=styles.label_fontsize)
     for ii in range(len(wl)):
         ax.plot(theta[ii], wl[ii], 'o',
                 markerfacecolor=color,
@@ -1489,9 +1494,11 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_xticks(np.linspace(1, 4, 4))
         ax.set_xticklabels(np.arange(1, 4), fontsize=styles.ticklabel_fontsize)
         ax.set_xlim(.9, 3.6)
+        ax.set_title(r'$k={}$'.format(k), fontsize=styles.label_fontsize)
     else:
         ax.set_xlim(1.5, 16.5)
         ax.set_xticks([2, 9, 16])
+        ax.set_title(r'OC $={}$'.format(OC), fontsize=styles.label_fontsize)
 
     ax.set_ylim(0, .5)
     ax.set_yticks([0, .5])
@@ -1576,8 +1583,7 @@ def plot_evals(save_path=None, ax=None, panel='a'):
     ax.yaxis.set_ticks_position('left')
     ax.get_yaxis().set_tick_params(direction='out')
     ax.get_xaxis().set_tick_params(direction='out')
-    ax.set_xticklabels((np.linspace(thetas[0], thetas[-1], 3) /
-                         np.pi*180.).astype(int))
+    ax.set_xticklabels([r'$-\frac{\pi}{2}$', 0, r'$\frac{\pi}{2}$'])
     ax.set_xlabel(r'$\theta_2$', fontsize=styles.label_fontsize, labelpad=0)
     ax.set_ylabel(r'$e_i$ (arb. units)', labelpad=-0, fontsize=styles.label_fontsize)
     ax.legend(loc='lower right', frameon=False, fontsize=styles.legend_fontsize)
