@@ -44,6 +44,29 @@ def generate_k_sparse(A, k, n_samples, rng, lambd=1.,
     X_zca, d, u = zca(X)
     return X_zca
 
+
+def generate_k_sparse_analysis(W, k, n_samples, rng, lambd=0.):
+    n_sources,  n_mixtures = W.shape
+    X = rng.randn(n_mixtures, n_samples)
+
+    for ii in range(n_samples):
+        sub = np.linalg.svd(W[rng.permutation(n_sources)[:k]])[2][:k]
+        proj = np.eye(n_mixtures) - sub.T.dot(sub)
+        X[:, ii] = proj.dot(X[:, ii])
+        if lambd > 0.:
+            for jj in range(1000):
+                coefs = W.dot(X[:, ii])
+                non_zero = abs(coefs) > 1e-20
+                sign = np.sign(coefs)
+                grad = (sign / np.sqrt(abs(coefs))/ 2.)[non_zero].dot(W[non_zero]) / non_zero.sum()
+                X[:, ii] = X[:, ii] - lambd * (grad + 4. * rng.randn(n_mixtures))
+                X[:, ii] = proj.dot(X[:, ii])
+    #preprocess data
+    X_mean = X.mean(axis=-1, keepdims=True)
+    X -= X_mean
+    X_zca, d, u = zca(X)
+    return X_zca
+
 def generate_imagePatches(datasetPath,patch_size=8,n_patches=200000,\
                             rng=None):
 
@@ -107,7 +130,7 @@ def whiten(X_train, X_test, whitening='eig'):
         X_zca = X_train.copy()
         if X_test is not None:
             X_test_zca = X_test.copy()
-        
+
     return X_zca, X_test_zca
 
 
@@ -177,7 +200,7 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
     demo_n : int
         Which type of data.
     rng : np.random.RandomState
-        
+
     """
     if rng==None:
         rng = np.random.RandomState(100000)
@@ -281,19 +304,19 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
         S = None
         A = None
 
-    if demo_n==5:        
+    if demo_n==5:
         filename = '/home/redwood/data/vanhateren/images_curated.h5'
         key = 'van_hateren_good'
         with File(filename,'r') as f:
-            images = f[key].value        
+            images = f[key].value
         patch_size = 16
-        n_dimensions = patch_size**2           
-        n_samples = total_samples = 200000                 
+        n_dimensions = patch_size**2
+        n_samples = total_samples = 200000
         rng = np.random.RandomState(1234)
         patches = image.PatchExtractor(patch_size=(patch_size, patch_size),\
                                        max_patches=total_samples//images.shape[0],
                                        random_state=rng).transform(images)
-        X = patches.reshape((patches.shape[0],n_dimensions)).T       
+        X = patches.reshape((patches.shape[0],n_dimensions)).T
         if test_samples is not None:
             order = rng.permutation(X.shape[1])
             X_test = X[:, order][:, :test_samples]
@@ -304,11 +327,11 @@ def generate_data(n_sources=None,n_mixtures=64,n_samples=16000,demo_n=1,\
     '''
     data preprocessing
     '''
-    
+
     X_train = X[:, :n_samples]
     X_mean = X_train.mean(axis=-1, keepdims=True)
     X_train -= X_mean
-    
+
     if test_samples is not None:
         X_test = X[:, n_samples:]
         X_test -= X_mean
