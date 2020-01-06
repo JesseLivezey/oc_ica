@@ -1,0 +1,9 @@
+dependencies:
+  - numpy
+  - scipy
+  - h5py
+  - theano
+  - matplotlib
+  - pip
+  - pip:
+    - theano

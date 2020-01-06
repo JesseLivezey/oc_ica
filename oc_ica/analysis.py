@@ -1,15 +1,7 @@
-from __future__ import division
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import glob, os, h5py
-try:
-    from importlib import reload
-except ImportError:
-    pass
-
-from oc_ica.models import ica
-reload(ica)
 
 
 def welch_bouch(n_mixtures, n_sources):
@@ -146,6 +138,7 @@ def get_W(w_init, degeneracy, rng=None, **kwargs):
     """
     Obtain W that minimizes the ICA loss funtion without the penalty
     """
+    from oc_ica.models import ica
     if rng is None:
         rng = np.random.RandomState(20160915)
     n_sources, n_mixtures = w_init.shape
@@ -203,14 +196,10 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                                                                                '_'.join(priors),
                                                                                keep_max)
     a_file = 'a_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC, '_'.join(priors))
-    #print a_file
-    #print fit_folder
     fit_files = sorted(glob.glob(os.path.join(base_folder, fit_folder,
         'comparison*.h5')))
     sc_fits = None
     models = [f.split('.')[-2].split('-')[-2].split('_keep')[0] for f in fit_files]
-    #print len(models), models
-    #print ''
 
     with h5py.File(os.path.join(base_folder, a_file), 'r') as f:
         A_array = f['A_array'].value
@@ -280,6 +269,80 @@ def comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
                                 null_results[ii, jj, kk, loc] = recovery_statistics_hungarian_AW(A, W)
                                 loc += 1
                             except (ValueError, AssertionError):
+                                pass
+        with h5py.File(results_file, 'w') as f:
+            f.create_dataset('null_results', data=null_results)
+    return results, null_results, lambdas
+
+
+def analysis_comparison_analysis_postprocess(base_folder, n_mixtures, OC, k, priors,
+                                    overwrite=False):
+    n_sources = int(n_mixtures * float(OC))
+    fit_folder = 'analysis_comparison_mixtures-{}_sources-{}_k-{}_priors-{}'.format(n_mixtures,
+                                                                           n_sources, k,
+                                                                           '_'.join(priors))
+    w_file = 'W_array-{}_OC-{}_priors-{}.h5'.format(n_mixtures, OC, '_'.join(priors))
+    fit_files = sorted(glob.glob(os.path.join(base_folder, fit_folder,
+        'analysis_comparison*.h5')))
+    assert len(fit_files) == 1
+    fit_file = fit_files[0]
+    models = ['2', '4', 'RANDOM', 'RANDOM_F', 'COULOMB_F', 'COULOMB', 'SM']
+
+    with h5py.File(os.path.join(base_folder, w_file), 'r') as f:
+        W_array = f['W_array'].value
+        W_priors = f['W_priors'].value
+
+    with h5py.File(os.path.join(base_folder, fit_folder, fit_file),
+        'r') as f:
+        lambdas = f['lambdas'].value
+        n_sources, n_mixtures = W_array.shape[2:]
+        n_iter = W_array.shape[1]
+
+    results = np.full((len(W_priors), len(models), lambdas.size, n_iter),
+                          np.nan, dtype='float32')
+    null_results = np.full((len(W_priors), len(models), lambdas.size,
+        (n_iter**2-n_iter)//2), np.nan, dtype='float32')
+
+    with h5py.File(os.path.join(base_folder, fit_folder, fit_file), 'r') as f:
+        W_fits = f['W_fits'][:]
+
+    results_file = os.path.join(base_folder, fit_folder, 'results.h5')
+    if (not overwrite) and os.path.exists(results_file):
+        with h5py.File(results_file) as f:
+            results = f['results'][:]
+    else:
+        for ii, p in enumerate(W_priors):
+            for jj, m in enumerate(models):
+                for kk, l in enumerate(lambdas):
+                    for ll in range(n_iter):
+                        try:
+                            Wo = W_array[ii, ll]
+                            W = W_fits[ii, jj, kk, ll]
+                            assert (not np.isnan(Wo.sum())) and (not np.isnan(W.sum()))
+                            results[ii, jj, kk, ll] = recovery_statistics_hungarian_AW(Wo.T, W)
+                        except AssertionError:
+                            pass
+        with h5py.File(results_file, 'w') as f:
+            f.create_dataset('results', data=results)
+
+    results_file = os.path.join(base_folder, fit_folder, 'null_results.h5')
+    if (not overwrite) and os.path.exists(results_file):
+        with h5py.File(results_file) as f:
+            null_results = f['null_results'].value
+    else:
+        for ii, p in enumerate(W_priors):
+            for jj, m in enumerate(models):
+                for kk, l in enumerate(lambdas):
+                    loc = 0
+                    for ll in range(n_iter):
+                        for mm in range(ll+1, n_iter):
+                            try:
+                                Wo = W_array[ii, ll]
+                                W = W_fits[ii, jj, kk, mm]
+                                assert (not np.isnan(Wo.sum())) and (not np.isnan(W.sum()))
+                                null_results[ii, jj, kk, loc] = recovery_statistics_hungarian_AW(Wo.T, W)
+                                loc += 1
+                            except AssertionError:
                                 pass
         with h5py.File(results_file, 'w') as f:
             f.create_dataset('null_results', data=null_results)

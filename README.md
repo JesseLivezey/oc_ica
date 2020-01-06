@@ -1,12 +1,28 @@
 # oc_ica
-Private repo for our overcomplete ICA project
+Repo for the *Learning Overcomplete, Low Coherence Dictionaries with Linear Inference* paper.
 
-Some nice figures from the paper:
+http://www.jmlr.org/papers/v20/18-703.html
 
-![figure2a](figures/figure2a.png)
 
-![figure2b](figures/figure2b.png)
+This repository has only been used in Python 2.7. To install, you can clone the repository and `cd` into the `oc_ica` folder.
 
-![figure2c](figures/figure2c.png)
+```bash
+# use ssh
+$ git clone git@github.com:JesseLivezey/oc_ica.git
+# or use https
+$ git clone https://github.com/JesseLivezey/oc_ica.git
+$ cd oc_ica
+```
 
-![figure2d](figures/figure2d.png)
+If you are installing into an active conda environment, you can run
+
+```bash
+$ conda env update --file environment.yml
+$ pip install -e .
+```
+
+If you are installing with `pip` you can run
+
+```bash
+$ pip install -e . -r requirements.txt
+```

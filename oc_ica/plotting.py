@@ -1,4 +1,3 @@
-from __future__ import division
 import h5py
 import numpy as np
 import matplotlib as mpl
@@ -11,24 +10,14 @@ from mpl_toolkits.axisartist import angle_helper
 from mpl_toolkits.axisartist.grid_finder import MaxNLocator
 from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
 import matplotlib.patheffects as pe
-from imp import reload
 
 
 
-from oc_ica import utils
-reload(utils)
 from oc_ica.utils import tile_raster_images as tri
 from oc_ica import analysis
-reload(analysis)
 
-import oc_ica.models.ica as ocica
-reload(ocica)
 from oc_ica import datasets as ds
-reload(ds)
-from gabor_fit import fit
-reload(fit)
 from oc_ica import styles
-reload(styles)
 
 
 def plot_figure1c(save_path=None, fax=None):
@@ -1125,6 +1114,7 @@ def get_Gabor_params(bases):
     bases: array
            ICA bases. Dimension: n_costs X n_sources X n_mixtures
     """
+    from gabor_fit import fit
     if bases.ndim == 2:
         bases = bases[np.newaxis,...]
     params = []
@@ -1431,7 +1421,7 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
                         vs_OC, ax, priors, n_prior, OCs=None, keep_OCs=None, OC_k=None,
                         ks=None, k_OC=None, legend=False, keep_max=False,
                         add_ylabel=False, add_xlabel=False,
-                        axlabel=None):
+                        axlabel=None, analysis_model=False):
     labelpad = 0
     ylabelpad = -5
     p = priors[n_prior]
@@ -1460,10 +1450,16 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
             OC = k_OC
             k = item
 
-        results, null_results, lambdas = analysis.comparison_analysis_postprocess(base_folder,
-                                                                                  n_mixtures,
-                                                                                  OC, k,
-                                                                                  priors, keep_max)
+        if analysis_model:
+            results, null_results, lambdas = analysis.analysis_comparison_analysis_postprocess(base_folder,
+                                                                                      n_mixtures,
+                                                                                      OC, k,
+                                                                                      priors)
+        else:
+            results, null_results, lambdas = analysis.comparison_analysis_postprocess(base_folder,
+                                                                                      n_mixtures,
+                                                                                      OC, k,
+                                                                                      priors, keep_max)
         for kk, m in enumerate(keep_models):
             kkp = models.index(m)
             if m == 'SM':
@@ -1485,7 +1481,7 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         fmt = styles.line_styles[m]
         color = styles.colors[m]
         label = styles.labels[m]
-        ax.errorbar(x, ym/2., yerr=y_stdm/np.sqrt(10), fmt=fmt, color=color,
+        ax.errorbar(x, ym, yerr=y_stdm/np.sqrt(10), fmt=fmt, color=color,
                 lw=styles.lw,
                  path_effects=[pe.Stroke(linewidth=styles.lw+1, foreground='k'), pe.Normal()])
         ax.plot(-1, -1, fmt, color=color, label=label, lw=2,
@@ -1500,8 +1496,8 @@ def recovery_vs_oc_or_k(models, keep_models, base_folder, n_mixtures,
         ax.set_xticks([2, 9, 16])
         ax.set_title(r'OC $={}$'.format(OC), fontsize=styles.label_fontsize)
 
-    ax.set_ylim(0, .5)
-    ax.set_yticks([0, .5])
+    ax.set_ylim(0, 1)
+    ax.set_yticks([0, 1])
     ax.tick_params(labelsize=styles.ticklabel_fontsize)
 
     if add_xlabel:
