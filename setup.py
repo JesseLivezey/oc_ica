@@ -22,10 +22,4 @@ setup(
     description='OC_ICA models and analysis.',
     long_description=long_description,
     author='Jesse Livezey and Alex Bujan',
-    author_email='jesse.livezey@berkeley.edu',
-    install_requires = [
-      'h5py',
-      'numpy',
-      'scipy',
-      'theano']
-    )
+    author_email='jesse.livezey@gmail.com')
